@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPG Fairy · Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14131f;
+    --panel:#1c1a2b;
+    --panel-2:#242238;
+    --line:#332f4d;
+    --line-soft:#282540;
+    --text:#ede9f7;
+    --text-dim:#9c97b8;
+    --text-faint:#615c81;
+    --gold:#e3b34d;
+    --gold-dim:#3c301a;
+    --teal:#6fcf9e;
+    --teal-dim:#173327;
+    --violet:#b79cf0;
+    --violet-dim:#2b2447;
+    --danger:#e2685f;
+    --radius:10px;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, #251f3d 0%, transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, #1e2438 0%, transparent 55%),
+      var(--ink);
+    color:var(--text);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--gold); color:#241b06; }
+
+  button{ font-family:inherit; }
+  input, textarea{ font-family:inherit; color:inherit; }
+
+  .app{
+    max-width:920px;
+    margin:0 auto;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+    padding:0 20px;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    padding:20px 0 14px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    border-bottom:1px solid var(--line-soft);
+    flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .spark{ width:22px; height:22px; color:var(--gold); flex:none; }
+  @media (prefers-reduced-motion: no-preference){
+    .spark{ animation:pulse 3.2s ease-in-out infinite; }
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; filter:drop-shadow(0 0 0px var(--gold)); }
+    50%{ opacity:.72; filter:drop-shadow(0 0 6px var(--gold)); }
+  }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.05; }
+  .brand-text .name{ font-family:var(--font-display); font-weight:600; font-size:19px; letter-spacing:.2px; }
+  .brand-text .sub{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-top:2px; }
+
+  nav.tabs{ display:flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:3px; }
+  nav.tabs button{
+    border:none; background:transparent; color:var(--text-dim);
+    font-size:13px; padding:7px 14px; border-radius:999px; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+    transition:background .15s, color .15s;
+  }
+  nav.tabs button .count{ font-size:10.5px; color:var(--text-faint); }
+  nav.tabs button[aria-selected="true"]{ background:var(--panel-2); color:var(--text); }
+  nav.tabs button[aria-selected="true"] .count{ color:var(--text-dim); }
+  nav.tabs button:hover{ color:var(--text); }
+  nav.tabs button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .header-actions{ display:flex; align-items:center; gap:6px; }
+  .icon-btn{
+    width:32px; height:32px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text-dim); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .icon-btn:hover{ color:var(--text); border-color:var(--text-faint); }
+  .icon-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+  .icon-btn svg{ width:15px; height:15px; }
+  .icon-btn.danger:hover{ color:var(--danger); border-color:var(--danger); }
+
+  /* ---------- panels ---------- */
+  .panels{ flex:1; min-height:0; display:flex; flex-direction:column; }
+  .panel{ flex:1; min-height:0; display:none; flex-direction:column; }
+  .panel.active{ display:flex; }
+
+  /* ---------- log panel ---------- */
+  .log-meta{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 0; gap:10px; flex-wrap:wrap;
+  }
+  .date-pill{
+    display:flex; align-items:center; gap:7px;
+    background:var(--gold-dim); border:1px solid #4a3c1f; color:var(--gold);
+    padding:5px 10px 5px 8px; border-radius:999px; font-size:12.5px; cursor:pointer;
+  }
+  .date-pill svg{ width:13px; height:13px; }
+  .date-pill input{
+    background:transparent; border:none; color:var(--gold); font-size:12.5px;
+    font-family:var(--font-body); width:170px; outline:none;
+  }
+  .stats{ font-size:12px; color:var(--text-faint); }
+  .filter-pill{
+    display:none; align-items:center; gap:6px; font-size:12px; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:999px;
+    padding:4px 6px 4px 10px; margin:0 0 10px;
+  }
+  .filter-pill.show{ display:inline-flex; }
+  .filter-pill button{ background:none; border:none; color:var(--text-dim); cursor:pointer; padding:2px; display:flex; }
+  .filter-pill button:hover{ color:var(--text); }
+
+  .log{
+    flex:1; overflow-y:auto; padding:4px 2px 18px;
+    display:flex; flex-direction:column; gap:2px;
+    scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+  }
+  .log::-webkit-scrollbar{ width:8px; }
+  .log::-webkit-scrollbar-thumb{ background:var(--line); border-radius:8px; }
+
+  .divider-session{
+    display:flex; align-items:center; gap:10px; margin:22px 0 10px;
+    font-family:var(--font-display); font-size:13px; color:var(--text-dim);
+  }
+  .divider-session::after{ content:''; flex:1; height:1px; background:var(--line-soft); }
+  .divider-date{
+    font-size:11px; letter-spacing:.06em; color:var(--gold);
+    margin:14px 0 6px 2px; display:flex; align-items:center; gap:6px;
+  }
+  .divider-date svg{ width:11px; height:11px; opacity:.8; }
+
+  .entry{
+    display:flex; gap:12px; padding:6px 10px; border-radius:8px;
+    font-family:var(--font-mono); font-size:14px; line-height:1.65;
+  }
+  .entry:hover{ background:var(--panel); }
+  .entry .time{ color:var(--text-faint); font-size:11.5px; padding-top:3px; flex:none; width:56px; }
+  .entry .text{ color:var(--text); overflow-wrap:anywhere; }
+  @media (prefers-reduced-motion: no-preference){
+    .entry.new{ animation:rise .28s ease-out; }
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* NOTE: chips use box-shadow, not padding, for the colored "pill" look.
+     Padding would change each tag's layout width in the mirror, which would
+     no longer match the plain (unpadded) text width in the real input —
+     causing the highlighted text to drift out of sync with the actual caret. */
+  .tk{ border-radius:4px; padding:0; cursor:pointer; }
+  .tk-char{ background:var(--teal-dim); box-shadow:0 0 0 2px var(--teal-dim); color:var(--teal); }
+  .tk-place{ background:var(--violet-dim); box-shadow:0 0 0 2px var(--violet-dim); color:var(--violet); }
+  .tk-date{ background:var(--gold-dim); box-shadow:0 0 0 2px var(--gold-dim); color:var(--gold); }
+  .tk-active{ outline:1px dashed currentColor; outline-offset:1px; }
+  span.tk:hover{ filter:brightness(1.3); }
+
+  .empty{
+    margin:auto; text-align:center; color:var(--text-dim); max-width:380px; padding:30px 10px;
+  }
+  .empty .glyph{ font-family:var(--font-display); font-size:26px; color:var(--text); margin-bottom:10px; }
+  .empty code{ background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-family:var(--font-mono); font-size:12.5px; }
+  .empty .example{
+    margin-top:14px; font-family:var(--font-mono); font-size:12.5px; color:var(--text-dim);
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; text-align:left;
+  }
+
+  /* ---------- composer ---------- */
+  .composer-wrap{ padding:12px 0 18px; position:relative; }
+  .legend{ display:flex; gap:14px; font-size:11px; color:var(--text-faint); margin:0 0 8px 2px; }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .legend i{ width:7px; height:7px; border-radius:50%; display:inline-block; }
+  .legend .lc{ background:var(--teal); } .legend .lp{ background:var(--violet); } .legend .ld{ background:var(--gold); }
+  .editing-badge{
+    display:none; align-items:center; gap:6px; font-size:11.5px; color:var(--gold);
+    margin-bottom:6px;
+  }
+  .editing-badge.show{ display:inline-flex; }
+  .editing-badge button{ background:none; border:none; color:var(--text-dim); text-decoration:underline; cursor:pointer; font-size:11.5px; }
+
+  .input-shell{
+    position:relative; background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); display:flex; align-items:center;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .input-shell:focus-within{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(227,179,77,.12); }
+  .mirror{
+    position:absolute; inset:0; overflow:hidden; pointer-events:none;
+    display:flex; align-items:center; padding:0 14px;
+  }
+  .mirror-inner{
+    white-space:pre; font-family:var(--font-mono); font-size:14.5px; line-height:1;
+  }
+  .composer{
+    position:relative; z-index:1; width:100%; background:transparent; border:none; outline:none;
+    padding:13px 14px; font-family:var(--font-mono); font-size:14.5px; color:transparent;
+    caret-color:var(--gold);
+  }
+  .composer::placeholder{ color:var(--text-faint); }
+  .send-hint{ position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:1; font-size:11px; color:var(--text-faint); pointer-events:none; }
+
+  .dropdown{
+    position:absolute; bottom:calc(100% + 8px); left:0; right:0;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 14px 34px -14px rgba(0,0,0,.7); overflow:hidden; display:none; z-index:5;
+    max-height:220px; overflow-y:auto;
+  }
+  .dropdown.show{ display:block; }
+  .dropdown .opt{
+    display:flex; align-items:center; gap:8px; padding:9px 12px; font-size:13.5px; cursor:pointer; color:var(--text-dim);
+  }
+  .dropdown .opt .dot{ width:6px; height:6px; border-radius:50%; flex:none; }
+  .dropdown .opt.active, .dropdown .opt:hover{ background:var(--panel); color:var(--text); }
+  .dropdown .opt.create{ color:var(--gold); border-top:1px solid var(--line); }
+
+  /* ---------- characters / locations ---------- */
+  .entities-scroll{ flex:1; overflow-y:auto; padding:6px 2px 30px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:12px; margin-top:4px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .card-name{
+    font-family:var(--font-display); font-weight:600; font-size:16px; background:transparent;
+    border:none; color:var(--text); width:100%; padding:2px 0; outline:none; border-bottom:1px solid transparent;
+  }
+  .card-name:focus{ border-bottom:1px solid var(--line); }
+  .card-pill{ font-size:10.5px; padding:2px 7px; border-radius:999px; flex:none; }
+  .card.character .card-pill{ background:var(--teal-dim); color:var(--teal); }
+  .card.location .card-pill{ background:var(--violet-dim); color:var(--violet); }
+  .card textarea{
+    width:100%; min-height:64px; resize:vertical; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:8px; padding:8px 10px; font-size:12.5px; color:var(--text); outline:none; margin-bottom:8px;
+  }
+  .card textarea:focus{ border-color:var(--text-faint); }
+  .card .mentions-btn{
+    font-size:11.5px; color:var(--text-dim); background:none; border:none; cursor:pointer;
+    padding:0; text-decoration:underline; text-underline-offset:2px;
+  }
+  .card .mentions-btn:hover{ color:var(--text); }
+
+  @media (max-width:640px){
+    header{ gap:12px; }
+    nav.tabs{ order:3; width:100%; justify-content:space-between; }
+    .header-actions{ order:2; }
+    .entry .time{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <svg class="spark" viewBox="0 0 24 24" fill="none"><path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" fill="currentColor"/></svg>
+      <div class="brand-text">
+        <span class="name">RPG Fairy</span>
+        <span class="sub">Journal</span>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="log" aria-selected="true">Log</button>
+      <button role="tab" data-tab="characters" aria-selected="false">Characters <span class="count" id="countChars">0</span></button>
+      <button role="tab" data-tab="locations" aria-selected="false">Locations <span class="count" id="countLocs">0</span></button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="icon-btn" id="btnExport" title="Export journal (.json)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
+      </button>
+      <button class="icon-btn" id="btnImport" title="Import journal (.json)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3m0 0 4 4m-4-4-4 4M5 21h14"/></svg>
+      </button>
+      <input type="file" id="fileImport" accept="application/json" hidden>
+      <button class="icon-btn danger" id="btnClear" title="Clear all data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="panels">
+
+    <!-- LOG -->
+    <section class="panel active" id="panel-log">
+      <div class="log-meta">
+        <div class="date-pill" id="datePill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+          <span id="dateLabel">Set the in-game date</span>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
+
+      <div class="filter-pill" id="filterPill">
+        <span id="filterLabel"></span>
+        <button id="filterClear" title="Clear filter">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <div class="log" id="log"></div>
+
+      <div class="composer-wrap">
+        <div class="editing-badge" id="editingBadge">
+          Editing last entry <button id="cancelEdit">cancel</button>
+        </div>
+        <div class="legend">
+          <span><i class="lc"></i>@ character</span>
+          <span><i class="lp"></i># location</span>
+          <span><i class="ld"></i>! date</span>
+        </div>
+        <div class="input-shell">
+          <div class="dropdown" id="dropdown"></div>
+          <div class="mirror"><div class="mirror-inner" id="mirrorInner"></div></div>
+          <input class="composer" id="composer" placeholder="@who  #where  !when — just start typing your log…" autocomplete="off" spellcheck="false">
+          <span class="send-hint">↵ log it</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARACTERS -->
+    <section class="panel" id="panel-characters">
+      <div class="entities-scroll">
+        <div class="grid" id="gridChars"></div>
+      </div>
+    </section>
+
+    <!-- LOCATIONS -->
+    <section class="panel" id="panel-locations">
+      <div class="entities-scroll">
+        <div class="grid" id="gridLocs"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "rpgfairy-journal-v1";
+  var SESSION_GAP_MS = 2 * 60 * 60 * 1000; // 2 hours real-world gap = new session
+
+  var state = load();
+
+  function defaultState(){
+    return { currentDate:"", entries:[], characters:{}, locations:{}, sessions:[] };
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed);
+    }catch(e){ console.error("Load failed", e); return defaultState(); }
+  }
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch(e){ console.error("Save failed", e); alert("Couldn't save — your browser storage may be full or blocked."); }
+  }
+  function uid(){
+    return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ("id-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
+    });
+  }
+
+  /* ---------------- tag parsing ---------------- */
+  // Splits raw text into {type:'text', value} and {type:'tag', sigil, name, raw, quoted, closed} segments.
+  function parseSegments(text){
+    var segments = [];
+    var i = 0, n = text.length, buf = "";
+    function flush(){ if(buf){ segments.push({type:"text", value:buf}); buf=""; } }
+
+    while(i < n){
+      var ch = text[i];
+      var prev = i > 0 ? text[i-1] : "";
+      if((ch === "@" || ch === "#" || ch === "!") && !/[A-Za-z0-9]/.test(prev)){
+        var j = i + 1, name = "", raw = ch, quoted = false, closed = true;
+        if(text[j] === '"'){
+          quoted = true;
+          var k = j + 1;
+          var end = text.indexOf('"', k);
+          if(end === -1){
+            name = text.slice(k);
+            raw = text.slice(i);
+            closed = false;
+            j = n;
+          } else {
+            name = text.slice(k, end);
+            raw = text.slice(i, end+1);
+            j = end + 1;
+          }
+        } else {
+          var k2 = j;
+          while(k2 < n && !/\s/.test(text[k2])) k2++;
+          var token = text.slice(j, k2);
+          var m = token.match(/^(.*?)([.,!?;:]*)$/);
+          name = m[1];
+          raw = ch + name;
+          j = i + raw.length;
+        }
+        if(name.length === 0){ buf += ch; i++; continue; }
+        flush();
+        segments.push({type:"tag", sigil:ch, name:name, raw:raw, quoted:quoted, closed:closed});
+        i = j;
+        continue;
+      }
+      buf += ch; i++;
+    }
+    flush();
+    return segments;
+  }
+
+  function ensureEntity(kind, name){
+    var dict = state[kind];
+    var found = null;
+    Object.keys(dict).forEach(function(id){
+      if(!found && dict[id].name.toLowerCase() === name.toLowerCase()) found = dict[id];
+    });
+    if(found) return found;
+    var ent = { id: uid(), name: name, notes: "", createdAt: Date.now() };
+    dict[ent.id] = ent;
+    return ent;
+  }
+
+  function getOrCreateSession(now){
+    var sessions = state.sessions;
+    var last = sessions[sessions.length - 1];
+    if(last && (now - last.lastActivity) < SESSION_GAP_MS){
+      last.lastActivity = now;
+      return last.id;
+    }
+    var s = { id: uid(), startedAt: now, lastActivity: now };
+    sessions.push(s);
+    return s.id;
+  }
+
+  /* ---------------- elements ---------------- */
+  var els = {
+    tabs: document.querySelectorAll("nav.tabs button"),
+    panels: { log: document.getElementById("panel-log"), characters: document.getElementById("panel-characters"), locations: document.getElementById("panel-locations") },
+    log: document.getElementById("log"),
+    composer: document.getElementById("composer"),
+    mirrorInner: document.getElementById("mirrorInner"),
+    dropdown: document.getElementById("dropdown"),
+    datePill: document.getElementById("datePill"),
+    dateLabel: document.getElementById("dateLabel"),
+    stats: document.getElementById("stats"),
+    filterPill: document.getElementById("filterPill"),
+    filterLabel: document.getElementById("filterLabel"),
+    filterClear: document.getElementById("filterClear"),
+    editingBadge: document.getElementById("editingBadge"),
+    cancelEdit: document.getElementById("cancelEdit"),
+    gridChars: document.getElementById("gridChars"),
+    gridLocs: document.getElementById("gridLocs"),
+    countChars: document.getElementById("countChars"),
+    countLocs: document.getElementById("countLocs"),
+    btnExport: document.getElementById("btnExport"),
+    btnImport: document.getElementById("btnImport"),
+    fileImport: document.getElementById("fileImport"),
+    btnClear: document.getElementById("btnClear")
+  };
+
+  var activeFilter = null;   // {type:'character'|'location', id}
+  var editingId = null;
+  var dropdownOpen = false;
+  var highlightIndex = -1;
+  var currentOptions = [];
+
+  /* ---------------- tabs ---------------- */
+  els.tabs.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      els.tabs.forEach(function(b){ b.setAttribute("aria-selected", b === btn ? "true" : "false"); });
+      Object.keys(els.panels).forEach(function(key){
+        els.panels[key].classList.toggle("active", key === btn.dataset.tab);
+      });
+      if(btn.dataset.tab === "log"){
+        requestAnimationFrame(function(){ els.composer.focus(); });
+      }
+    });
+  });
+  function switchToLog(){
+    els.tabs.forEach(function(b){ b.setAttribute("aria-selected", b.dataset.tab === "log" ? "true" : "false"); });
+    Object.keys(els.panels).forEach(function(key){ els.panels[key].classList.toggle("active", key === "log"); });
+  }
+
+  /* ---------------- date pill ---------------- */
+  els.datePill.addEventListener("click", function(){
+    if(els.datePill.querySelector("input")) return;
+    var current = state.currentDate;
+    els.datePill.innerHTML = "";
+    var input = document.createElement("input");
+    input.value = current;
+    input.placeholder = "e.g. 15th of Hammer, 1492 DR";
+    els.datePill.appendChild(input);
+    input.focus(); input.select();
+    function commit(){
+      state.currentDate = input.value.trim();
+      save(); renderDatePill();
+    }
+    input.addEventListener("blur", commit);
+    input.addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ e.preventDefault(); commit(); }
+      if(e.key === "Escape"){ renderDatePill(); }
+    });
+  });
+  function renderDatePill(){
+    els.datePill.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>' +
+      '<span id="dateLabel">'+ (state.currentDate ? escapeHtml(state.currentDate) : "Set the in-game date") +'</span>';
+  }
+
+  /* ---------------- composer mirror ---------------- */
+  function renderMirror(){
+    var segs = parseSegments(els.composer.value);
+    var html = segs.map(function(seg){
+      if(seg.type === "text") return escapeHtml(seg.value);
+      var cls = seg.sigil === "@" ? "tk-char" : seg.sigil === "#" ? "tk-place" : "tk-date";
+      var activeCls = !seg.closed ? " tk-active" : "";
+      return '<span class="tk '+cls+activeCls+'">'+escapeHtml(seg.raw)+'</span>';
+    }).join("");
+    els.mirrorInner.innerHTML = html;
+    syncScroll();
+  }
+  function syncScroll(){
+    els.mirrorInner.style.marginLeft = (-els.composer.scrollLeft) + "px";
+  }
+
+  /* ---------------- autocomplete ---------------- */
+  function getActiveTag(){
+    var value = els.composer.value;
+    var caret = els.composer.selectionStart;
+    if(caret !== value.length) return null;
+    var segs = parseSegments(value);
+    var last = segs[segs.length - 1];
+    if(!last || last.type !== "tag") return null;
+    if(last.sigil === "!") return null;
+    if(last.quoted && last.closed) return null;
+    return last;
+  }
+
+  function updateDropdown(){
+    var tag = getActiveTag();
+    if(!tag){ hideDropdown(); return; }
+    var kind = tag.sigil === "@" ? "characters" : "locations";
+    var partial = tag.name.toLowerCase();
+    var pool = Object.keys(state[kind]).map(function(id){ return state[kind][id]; });
+    var matches = pool.filter(function(e){ return e.name.toLowerCase().indexOf(partial) !== -1; });
+    matches.sort(function(a,b){
+      var aStarts = a.name.toLowerCase().indexOf(partial) === 0 ? 0 : 1;
+      var bStarts = b.name.toLowerCase().indexOf(partial) === 0 ? 0 : 1;
+      if(aStarts !== bStarts) return aStarts - bStarts;
+      return a.name.localeCompare(b.name);
+    });
+    matches = matches.slice(0, 6);
+
+    var exactMatch = matches.some(function(e){ return e.name.toLowerCase() === partial; });
+    currentOptions = matches.map(function(e){ return { kind:kind, name:e.name, create:false }; });
+    if(tag.name.trim() && !exactMatch){
+      currentOptions.push({ kind:kind, name:tag.name.trim(), create:true });
+    }
+    if(currentOptions.length === 0){ hideDropdown(); return; }
+
+    highlightIndex = 0;
+    renderDropdown();
+    dropdownOpen = true;
+    els.dropdown.classList.add("show");
+  }
+
+  function renderDropdown(){
+    var dotClass = currentOptions.length && currentOptions[0].kind === "characters" ? "tk-char" : "tk-place";
+    els.dropdown.innerHTML = currentOptions.map(function(opt, idx){
+      var color = opt.kind === "characters" ? "var(--teal)" : "var(--violet)";
+      var cls = idx === highlightIndex ? "opt active" : "opt";
+      if(opt.create) cls += " create";
+      var label = opt.create ? 'Create "'+escapeHtml(opt.name)+'"' : escapeHtml(opt.name);
+      return '<div class="'+cls+'" data-idx="'+idx+'"><span class="dot" style="background:'+color+'"></span>'+label+'</div>';
+    }).join("");
+  }
+
+  els.dropdown.addEventListener("mousedown", function(e){
+    var optEl = e.target.closest(".opt");
+    if(!optEl) return;
+    e.preventDefault();
+    acceptOption(parseInt(optEl.dataset.idx, 10));
+  });
+
+  function hideDropdown(){
+    dropdownOpen = false; highlightIndex = -1; currentOptions = [];
+    els.dropdown.classList.remove("show"); els.dropdown.innerHTML = "";
+  }
+
+  function acceptOption(idx){
+    var opt = currentOptions[idx];
+    if(!opt) return;
+    var tag = getActiveTag();
+    if(!tag) return;
+    var value = els.composer.value;
+    var sigil = tag.sigil;
+    var needsQuotes = opt.name.indexOf(" ") !== -1;
+    var replacement = sigil + (needsQuotes ? '"'+opt.name+'"' : opt.name) + " ";
+    var prefix = value.slice(0, value.length - tag.raw.length);
+    els.composer.value = prefix + replacement;
+    els.composer.focus();
+    els.composer.setSelectionRange(els.composer.value.length, els.composer.value.length);
+    hideDropdown();
+    renderMirror();
+  }
+
+  /* ---------------- composer events ---------------- */
+  els.composer.addEventListener("input", function(){
+    renderMirror();
+    updateDropdown();
+  });
+  els.composer.addEventListener("click", syncScroll);
+  els.composer.addEventListener("keyup", function(e){
+    if(["ArrowLeft","ArrowRight","Home","End"].indexOf(e.key) !== -1) syncScroll();
+  });
+
+  els.composer.addEventListener("keydown", function(e){
+    if(dropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")){
+      e.preventDefault();
+      var dir = e.key === "ArrowDown" ? 1 : -1;
+      highlightIndex = (highlightIndex + dir + currentOptions.length) % currentOptions.length;
+      renderDropdown();
+      return;
+    }
+    if(dropdownOpen && (e.key === "Enter" || e.key === "Tab") && highlightIndex >= 0){
+      e.preventDefault();
+      acceptOption(highlightIndex);
+      return;
+    }
+    if(e.key === "Escape"){
+      if(dropdownOpen){ hideDropdown(); return; }
+      if(editingId){ stopEditing(); return; }
+      return;
+    }
+    if(e.key === "ArrowUp" && els.composer.value === "" && !dropdownOpen){
+      var last = state.entries[state.entries.length - 1];
+      if(last){
+        startEditing(last);
+      }
+      e.preventDefault();
+      return;
+    }
+    if(e.key === "Enter"){
+      e.preventDefault();
+      handleSubmit();
+    }
+  });
+
+  function startEditing(entry){
+    editingId = entry.id;
+    els.composer.value = entry.raw;
+    renderMirror();
+    requestAnimationFrame(function(){
+      els.composer.focus();
+      els.composer.setSelectionRange(els.composer.value.length, els.composer.value.length);
+    });
+    els.editingBadge.classList.add("show");
+  }
+  function stopEditing(){
+    editingId = null;
+    els.composer.value = "";
+    renderMirror();
+    els.editingBadge.classList.remove("show");
+  }
+  els.cancelEdit.addEventListener("click", stopEditing);
+
+  function handleSubmit(){
+    var raw = els.composer.value.trim();
+    if(!raw) return;
+    var segs = parseSegments(raw);
+    var mentions = [];
+    var entryDate = state.currentDate;
+
+    segs.forEach(function(seg){
+      if(seg.type !== "tag") return;
+      if(seg.sigil === "@"){
+        var c = ensureEntity("characters", seg.name);
+        mentions.push({ type:"character", id:c.id });
+      } else if(seg.sigil === "#"){
+        var l = ensureEntity("locations", seg.name);
+        mentions.push({ type:"location", id:l.id });
+      } else if(seg.sigil === "!"){
+        entryDate = seg.name;
+        state.currentDate = seg.name;
+      }
+    });
+
+    var now = Date.now();
+    if(editingId){
+      var entry = state.entries.find(function(e){ return e.id === editingId; });
+      if(entry){
+        entry.raw = raw; entry.date = entryDate; entry.mentions = mentions; entry.editedAt = now;
+      }
+      stopEditing();
+    } else {
+      var sessionId = getOrCreateSession(now);
+      state.entries.push({ id: uid(), raw: raw, date: entryDate, mentions: mentions, createdAt: now, sessionId: sessionId });
+    }
+
+    els.composer.value = "";
+    renderMirror();
+    save();
+    renderAll();
+  }
+
+  /* ---------------- log rendering ---------------- */
+  function filteredEntries(){
+    if(!activeFilter) return state.entries;
+    return state.entries.filter(function(e){
+      return e.mentions.some(function(m){ return m.type === activeFilter.type && m.id === activeFilter.id; });
+    });
+  }
+
+  function fmtTime(ts){
+    var d = new Date(ts);
+    return d.toLocaleTimeString(undefined, { hour:"numeric", minute:"2-digit" });
+  }
+  function fmtSessionStart(ts){
+    var d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month:"short", day:"numeric" }) + " · " + fmtTime(ts);
+  }
+
+  function renderEntrySegments(raw, mentions){
+    var segs = parseSegments(raw);
+    var mIdx = 0;
+    return segs.map(function(seg){
+      if(seg.type === "text") return escapeHtml(seg.value);
+      if(seg.sigil === "!"){
+        return '<span class="tk tk-date">'+escapeHtml(seg.raw)+'</span>';
+      }
+      var mention = mentions[mIdx]; mIdx++;
+      var cls = seg.sigil === "@" ? "tk-char" : "tk-place";
+      var type = seg.sigil === "@" ? "character" : "location";
+      var id = mention ? mention.id : "";
+      return '<span class="tk '+cls+'" data-type="'+type+'" data-id="'+id+'">'+escapeHtml(seg.raw)+'</span>';
+    }).join("");
+  }
+
+  var sessionCounters = {};
+  function renderLog(){
+    els.log.innerHTML = "";
+    var entries = filteredEntries();
+
+    if(entries.length === 0){
+      var msg = activeFilter
+        ? '<div class="empty"><div class="glyph">Nothing here yet</div><div>No log entries mention this one yet.</div></div>'
+        : '<div class="empty"><div class="glyph">The log is empty</div><div>Start typing below — tag people with <code>@</code>, places with <code>#</code>, and set the date with <code>!</code>.</div>' +
+          '<div class="example">!"3rd of Ches" The party meets @Bram at #"The Rusty Anchor".</div></div>';
+      els.log.innerHTML = msg;
+      return;
+    }
+
+    sessionCounters = {};
+    var order = [];
+    state.sessions.forEach(function(s, i){ sessionCounters[s.id] = i + 1; });
+
+    var lastSession = null, lastDate = null;
+    entries.forEach(function(entry){
+      if(entry.sessionId !== lastSession){
+        lastSession = entry.sessionId;
+        lastDate = null;
+        var num = sessionCounters[entry.sessionId] || "?";
+        var startedAt = (state.sessions.find(function(s){ return s.id === entry.sessionId; }) || {}).startedAt || entry.createdAt;
+        var div = document.createElement("div");
+        div.className = "divider-session";
+        div.textContent = "Session " + num + " — " + fmtSessionStart(startedAt);
+        els.log.appendChild(div);
+      }
+      if(entry.date && entry.date !== lastDate){
+        lastDate = entry.date;
+        var dd = document.createElement("div");
+        dd.className = "divider-date";
+        dd.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>' + escapeHtml(entry.date);
+        els.log.appendChild(dd);
+      }
+      var row = document.createElement("div");
+      row.className = "entry new";
+      row.innerHTML = '<span class="time">'+fmtTime(entry.createdAt)+'</span><span class="text">'+renderEntrySegments(entry.raw, entry.mentions)+'</span>';
+      els.log.appendChild(row);
+    });
+
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+
+  els.log.addEventListener("click", function(e){
+    var tag = e.target.closest(".tk[data-id]");
+    if(!tag || !tag.dataset.id) return;
+    activeFilter = { type: tag.dataset.type, id: tag.dataset.id };
+    renderFilterPill();
+    renderLog();
+  });
+
+  function renderFilterPill(){
+    if(!activeFilter){ els.filterPill.classList.remove("show"); return; }
+    var dict = activeFilter.type === "character" ? state.characters : state.locations;
+    var ent = dict[activeFilter.id];
+    els.filterLabel.textContent = "Showing entries with " + (activeFilter.type === "character" ? "@" : "#") + (ent ? ent.name : "?");
+    els.filterPill.classList.add("show");
+  }
+  els.filterClear.addEventListener("click", function(){
+    activeFilter = null; renderFilterPill(); renderLog();
+  });
+
+  /* ---------------- characters / locations ---------------- */
+  function renderEntities(kind, gridEl, cardClass, sigil){
+    var dict = state[kind];
+    var list = Object.keys(dict).map(function(id){ return dict[id]; });
+    list.sort(function(a,b){ return a.name.localeCompare(b.name); });
+
+    if(list.length === 0){
+      var label = kind === "characters" ? "characters" : "locations";
+      gridEl.innerHTML = '<div class="empty" style="margin-top:40px;">' +
+        '<div class="glyph">No ' + label + ' yet</div>' +
+        '<div>Mention someone with <code>'+sigil+'Name</code> in the Log and they\'ll show up here automatically.</div></div>';
+      return;
+    }
+
+    gridEl.innerHTML = "";
+    list.forEach(function(ent){
+      var count = state.entries.filter(function(e){
+        return e.mentions.some(function(m){ return m.id === ent.id; });
+      }).length;
+
+      var card = document.createElement("div");
+      card.className = "card " + cardClass;
+      card.innerHTML =
+        '<div class="card-head"><input class="card-name" value="'+escapeHtml(ent.name)+'"><span class="card-pill">'+sigil+'</span></div>' +
+        '<textarea placeholder="Add notes about '+escapeHtml(ent.name)+'…">'+escapeHtml(ent.notes || "")+'</textarea>' +
+        '<button class="mentions-btn">Mentioned in '+count+' '+(count===1?'entry':'entries')+'</button>';
+
+      var nameInput = card.querySelector(".card-name");
+      nameInput.addEventListener("change", function(){
+        var v = nameInput.value.trim();
+        if(v){ ent.name = v; save(); renderAll(); }
+        else nameInput.value = ent.name;
+      });
+
+      var notesArea = card.querySelector("textarea");
+      var saveTimer = null;
+      notesArea.addEventListener("input", function(){
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(function(){ ent.notes = notesArea.value; save(); }, 400);
+      });
+
+      card.querySelector(".mentions-btn").addEventListener("click", function(){
+        activeFilter = { type: kind === "characters" ? "character" : "location", id: ent.id };
+        renderFilterPill();
+        renderLog();
+        switchToLog();
+      });
+
+      gridEl.appendChild(card);
+    });
+  }
+
+  /* ---------------- stats & top-level render ---------------- */
+  function renderStats(){
+    var chars = Object.keys(state.characters).length;
+    var locs = Object.keys(state.locations).length;
+    els.stats.textContent = state.entries.length + " entries · " + chars + " characters · " + locs + " locations";
+    els.countChars.textContent = chars;
+    els.countLocs.textContent = locs;
+  }
+
+  function renderAll(){
+    renderDatePill();
+    renderFilterPill();
+    renderLog();
+    renderEntities("characters", els.gridChars, "character", "@");
+    renderEntities("locations", els.gridLocs, "location", "#");
+    renderStats();
+  }
+
+  /* ---------------- export / import / clear ---------------- */
+  els.btnExport.addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = "rpgfairy-journal-" + stamp + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  els.btnImport.addEventListener("click", function(){ els.fileImport.click(); });
+  els.fileImport.addEventListener("change", function(){
+    var file = els.fileImport.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var parsed = JSON.parse(reader.result);
+        if(!parsed || !Array.isArray(parsed.entries)) throw new Error("Not a valid journal file");
+        if(!confirm("Import will replace your current journal in this browser. Continue?")) return;
+        state = Object.assign(defaultState(), parsed);
+        activeFilter = null;
+        save(); renderAll();
+      }catch(err){
+        alert("Couldn't read that file — is it a journal export?");
+      }
+      els.fileImport.value = "";
+    };
+    reader.readAsText(file);
+  });
+
+  els.btnClear.addEventListener("click", function(){
+    if(!confirm("This clears everything in this browser — characters, locations, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
+    state = defaultState();
+    activeFilter = null;
+    save(); renderAll();
+  });
+
+  /* ---------------- init ---------------- */
+  renderAll();
+  els.composer.focus();
+
+})();
+</script>
+</body>
+</html>
