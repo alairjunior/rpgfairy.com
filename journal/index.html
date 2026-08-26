@@ -23,6 +23,8 @@
     --teal-dim:#173327;
     --violet:#b79cf0;
     --violet-dim:#2b2447;
+    --item:#e0955a;
+    --item-dim:#3a2417;
     --danger:#e2685f;
     --radius:10px;
     --font-display:'Fraunces', serif;
@@ -45,7 +47,7 @@
   ::selection{ background:var(--gold); color:#241b06; }
 
   button{ font-family:inherit; }
-  input, textarea{ font-family:inherit; color:inherit; }
+  input, textarea, select{ font-family:inherit; color:inherit; }
 
   .app{
     max-width:920px;
@@ -172,11 +174,12 @@
   .tk-char{ background:var(--teal-dim); box-shadow:0 0 0 2px var(--teal-dim); color:var(--teal); }
   .tk-place{ background:var(--violet-dim); box-shadow:0 0 0 2px var(--violet-dim); color:var(--violet); }
   .tk-date{ background:var(--gold-dim); box-shadow:0 0 0 2px var(--gold-dim); color:var(--gold); }
+  .tk-item{ background:var(--item-dim); box-shadow:0 0 0 2px var(--item-dim); color:var(--item); }
   .tk-active{ outline:1px dashed currentColor; outline-offset:1px; }
   span.tk:hover{ filter:brightness(1.3); }
 
   .empty{
-    margin:auto; text-align:center; color:var(--text-dim); max-width:380px; padding:30px 10px;
+    margin:auto; text-align:center; color:var(--text-dim); max-width:400px; padding:30px 10px;
   }
   .empty .glyph{ font-family:var(--font-display); font-size:26px; color:var(--text); margin-bottom:10px; }
   .empty code{ background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-family:var(--font-mono); font-size:12.5px; }
@@ -187,10 +190,10 @@
 
   /* ---------- composer ---------- */
   .composer-wrap{ padding:12px 0 18px; position:relative; }
-  .legend{ display:flex; gap:14px; font-size:11px; color:var(--text-faint); margin:0 0 8px 2px; }
+  .legend{ display:flex; gap:14px; font-size:11px; color:var(--text-faint); margin:0 0 8px 2px; flex-wrap:wrap; }
   .legend span{ display:inline-flex; align-items:center; gap:5px; }
   .legend i{ width:7px; height:7px; border-radius:50%; display:inline-block; }
-  .legend .lc{ background:var(--teal); } .legend .lp{ background:var(--violet); } .legend .ld{ background:var(--gold); }
+  .legend .lc{ background:var(--teal); } .legend .lp{ background:var(--violet); } .legend .li{ background:var(--item); } .legend .ld{ background:var(--gold); }
   .editing-badge{
     display:none; align-items:center; gap:6px; font-size:11.5px; color:var(--gold);
     margin-bottom:6px;
@@ -230,10 +233,17 @@
     display:flex; align-items:center; gap:8px; padding:9px 12px; font-size:13.5px; cursor:pointer; color:var(--text-dim);
   }
   .dropdown .opt .dot{ width:6px; height:6px; border-radius:50%; flex:none; }
+  .dropdown .opt .hint{ color:var(--text-faint); font-size:11px; }
   .dropdown .opt.active, .dropdown .opt:hover{ background:var(--panel); color:var(--text); }
   .dropdown .opt.create{ color:var(--gold); border-top:1px solid var(--line); }
+  .dropdown .opt.random{ color:var(--gold); }
+  .reroll-btn{
+    margin-left:auto; background:none; border:none; color:var(--text-dim); cursor:pointer;
+    font-size:14px; line-height:1; padding:3px 5px; border-radius:5px; flex:none;
+  }
+  .reroll-btn:hover{ color:var(--gold); background:var(--panel); }
 
-  /* ---------- characters / locations ---------- */
+  /* ---------- characters / locations / items ---------- */
   .entities-scroll{ flex:1; overflow-y:auto; padding:6px 2px 30px; }
   .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:12px; margin-top:4px; }
   .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
@@ -246,22 +256,68 @@
   .card-pill{ font-size:10.5px; padding:2px 7px; border-radius:999px; flex:none; }
   .card.character .card-pill{ background:var(--teal-dim); color:var(--teal); }
   .card.location .card-pill{ background:var(--violet-dim); color:var(--violet); }
+  .card.item .card-pill{ background:var(--item-dim); color:var(--item); }
   .card textarea{
     width:100%; min-height:64px; resize:vertical; background:var(--panel-2); border:1px solid var(--line);
     border-radius:8px; padding:8px 10px; font-size:12.5px; color:var(--text); outline:none; margin-bottom:8px;
   }
   .card textarea:focus{ border-color:var(--text-faint); }
+  .card-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .card .mentions-btn{
     font-size:11.5px; color:var(--text-dim); background:none; border:none; cursor:pointer;
     padding:0; text-decoration:underline; text-underline-offset:2px;
   }
   .card .mentions-btn:hover{ color:var(--text); }
 
+  /* ---------- fairy button / menu ---------- */
+  .fairy-wrap{ position:relative; flex:none; }
+  .fairy-btn{
+    font-size:11.5px; background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim);
+    border-radius:999px; padding:4px 10px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .fairy-btn:hover{ color:var(--text); border-color:var(--gold); }
+  .fairy-menu{
+    display:none; position:absolute; bottom:calc(100% + 6px); right:0; min-width:200px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 14px 34px -14px rgba(0,0,0,.7); z-index:6; overflow:hidden;
+  }
+  .fairy-wrap.open .fairy-menu{ display:block; }
+  .fairy-item{ padding:8px 12px; font-size:12px; color:var(--text-dim); cursor:pointer; }
+  .fairy-item:hover{ background:var(--panel); color:var(--text); }
+  .fairy-item.copy-prompt{ border-top:1px solid var(--line); color:var(--gold); }
+  .fairy-empty{ padding:10px 12px; font-size:11px; color:var(--text-faint); max-width:200px; line-height:1.4; }
+
+  /* ---------- config modal ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(10,9,18,.72); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-overlay.show{ display:flex; }
+  .modal{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; width:100%; max-width:540px; max-height:82vh; overflow-y:auto; box-shadow:0 30px 60px -20px rgba(0,0,0,.7); }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+  .modal-head h2{ font-family:var(--font-display); font-size:19px; margin:0; font-weight:600; }
+  .modal-help{ font-size:12.5px; color:var(--text-dim); line-height:1.55; margin:10px 0 18px; }
+  .list-form{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  .list-form input, .list-form select{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12.5px; outline:none; }
+  .list-form input:focus, .list-form select:focus{ border-color:var(--gold); }
+  .list-form input#newListUrl{ grid-column:1 / -1; }
+  .list-form button{ grid-column:1 / -1; background:var(--gold); border:none; color:#241b06; font-weight:600; font-size:13px; border-radius:8px; padding:10px; cursor:pointer; }
+  .list-form button:hover{ filter:brightness(1.07); }
+  .list-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:12px 0; border-top:1px solid var(--line-soft); }
+  .list-row:first-child{ border-top:none; padding-top:2px; }
+  .list-row-main strong{ font-size:13.5px; }
+  .role-tag{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); margin-left:7px; }
+  .list-status{ font-size:11.5px; color:var(--text-dim); margin-top:3px; }
+  .list-status.error{ color:var(--danger); }
+  .list-row-actions{ display:flex; gap:6px; flex:none; }
+  .mini-btn{ font-size:11px; background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); border-radius:7px; padding:5px 9px; cursor:pointer; }
+  .mini-btn:hover{ color:var(--text); }
+  .mini-btn.remove:hover{ color:var(--danger); border-color:var(--danger); }
+  .no-lists{ font-size:12.5px; color:var(--text-faint); padding:4px 0; line-height:1.5; }
+
   @media (max-width:640px){
     header{ gap:12px; }
     nav.tabs{ order:3; width:100%; justify-content:space-between; }
     .header-actions{ order:2; }
     .entry .time{ display:none; }
+    .list-form{ grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -281,9 +337,13 @@
       <button role="tab" data-tab="log" aria-selected="true">Log</button>
       <button role="tab" data-tab="characters" aria-selected="false">Characters <span class="count" id="countChars">0</span></button>
       <button role="tab" data-tab="locations" aria-selected="false">Locations <span class="count" id="countLocs">0</span></button>
+      <button role="tab" data-tab="items" aria-selected="false">Items <span class="count" id="countItems">0</span></button>
     </nav>
 
     <div class="header-actions">
+      <button class="icon-btn" id="btnConfig" title="Configure random lists">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.16.31.4.58.7.77.3.19.65.29 1 .29H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="icon-btn" id="btnExport" title="Export journal (.json)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
       </button>
@@ -323,14 +383,15 @@
           Editing last entry <button id="cancelEdit">cancel</button>
         </div>
         <div class="legend">
-          <span><i class="lc"></i>@ character</span>
+          <span><i class="lc"></i>@ character (blank @ = random name)</span>
           <span><i class="lp"></i># location</span>
+          <span><i class="li"></i>$ item</span>
           <span><i class="ld"></i>! date</span>
         </div>
         <div class="input-shell">
           <div class="dropdown" id="dropdown"></div>
           <div class="mirror"><div class="mirror-inner" id="mirrorInner"></div></div>
-          <input class="composer" id="composer" placeholder="@who  #where  !when — just start typing your log…" autocomplete="off" spellcheck="false">
+          <input class="composer" id="composer" placeholder="@who  #where  $what  !when — just start typing your log…" autocomplete="off" spellcheck="false">
           <span class="send-hint">↵ log it</span>
         </div>
       </div>
@@ -350,6 +411,41 @@
       </div>
     </section>
 
+    <!-- ITEMS -->
+    <section class="panel" id="panel-items">
+      <div class="entities-scroll">
+        <div class="grid" id="gridItems"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="configOverlay">
+  <div class="modal" role="dialog" aria-label="Configure random lists">
+    <div class="modal-head">
+      <h2>Random Lists</h2>
+      <button class="icon-btn" id="closeConfig">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="modal-help">
+      Add plain-text lists (one entry per line) hosted at a raw URL — GitHub raw links (<code>raw.githubusercontent.com</code>) work reliably. <strong>Names</strong> lists power a blank <code>@</code> in the log. <strong>Style</strong> lists feed the AI art-prompt line on character/location cards. Everything else appears as a quick-fill option under the 🧚 Fairy button. Lists are cached after loading, so a bad connection at the table won't break anything.
+    </p>
+
+    <div class="list-form">
+      <input id="newListLabel" placeholder="Label, e.g. Tavern Names">
+      <select id="newListRole">
+        <option value="other">Fill list (peculiarities, traits…)</option>
+        <option value="names">Names (blank @ fill)</option>
+        <option value="style">Art style (for AI prompts)</option>
+      </select>
+      <input id="newListUrl" placeholder="https://raw.githubusercontent.com/you/lists/main/names.txt">
+      <button id="addListBtn" type="button">Add list</button>
+    </div>
+
+    <div id="listCollection"></div>
   </div>
 </div>
 
@@ -360,10 +456,19 @@
   var STORAGE_KEY = "rpgfairy-journal-v1";
   var SESSION_GAP_MS = 2 * 60 * 60 * 1000; // 2 hours real-world gap = new session
 
+  var DEFAULT_NAMES = [
+    "Bramblewick","Thistledown","Corvin Ashwood","Mira Hollow","Dagen Stormwright",
+    "Yara Bellweather","Old Tobin","Wren Fairfax","Kestrel","Elowen Nightshade",
+    "Grix","Petra Ironvale","Sable","Oberon Marsh","Nella Quickfoot",
+    "Finch","Rowan Thistle","Vex","Marlowe Graves","Talia Windham",
+    "Corbin Wren","Isolde Fen","Garrick Stone","Fira Duskwalker"
+  ];
+  var DEFAULT_STYLE = "fantasy digital painting, detailed, atmospheric lighting";
+
   var state = load();
 
   function defaultState(){
-    return { currentDate:"", entries:[], characters:{}, locations:{}, sessions:[] };
+    return { currentDate:"", entries:[], characters:{}, locations:{}, items:{}, sessions:[], lists:[] };
   }
   function load(){
     try{
@@ -385,9 +490,43 @@
       return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
     });
   }
+  function pickRandom(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function getNamesPool(){
+    var userLists = state.lists.filter(function(l){ return l.role === "names" && l.lines && l.lines.length; });
+    if(userLists.length){
+      var merged = [];
+      userLists.forEach(function(l){ merged = merged.concat(l.lines); });
+      return merged;
+    }
+    return DEFAULT_NAMES;
+  }
+
+  function copyToClipboard(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text).catch(function(){ fallbackCopy(text); });
+    }
+    return fallbackCopy(text);
+  }
+  function fallbackCopy(text){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  function buildArtPrompt(ent, kind){
+    var styleLists = state.lists.filter(function(l){ return l.role === "style" && l.lines && l.lines.length; });
+    var style = styleLists.length ? pickRandom(pickRandom(styleLists).lines) : DEFAULT_STYLE;
+    var subject = kind === "characters" ? "character portrait" : "location illustration";
+    var notes = (ent.notes || "").trim().replace(/\s*\n+\s*/g, ", ").replace(/^-+\s*/g, "").replace(/,\s*-+\s*/g, ", ");
+    return "A " + subject + " of " + ent.name + (notes ? ": " + notes : "") + ". Style: " + style + ".";
+  }
 
   /* ---------------- tag parsing ---------------- */
   // Splits raw text into {type:'text', value} and {type:'tag', sigil, name, raw, quoted, closed} segments.
+  // Sigils: @ character, # location, $ item, ! date.
   function parseSegments(text){
     var segments = [];
     var i = 0, n = text.length, buf = "";
@@ -396,7 +535,7 @@
     while(i < n){
       var ch = text[i];
       var prev = i > 0 ? text[i-1] : "";
-      if((ch === "@" || ch === "#" || ch === "!") && !/[A-Za-z0-9]/.test(prev)){
+      if((ch === "@" || ch === "#" || ch === "!" || ch === "$") && !/[A-Za-z0-9]/.test(prev)){
         var j = i + 1, name = "", raw = ch, quoted = false, closed = true;
         if(text[j] === '"'){
           quoted = true;
@@ -433,6 +572,19 @@
     return segments;
   }
 
+  function kindForSigil(sigil){
+    return sigil === "@" ? "characters" : sigil === "#" ? "locations" : "items";
+  }
+  function typeForSigil(sigil){
+    return sigil === "@" ? "character" : sigil === "#" ? "location" : "item";
+  }
+  function sigilForType(type){
+    return type === "character" ? "@" : type === "location" ? "#" : "$";
+  }
+  function tkClassForSigil(sigil){
+    return sigil === "@" ? "tk-char" : sigil === "#" ? "tk-place" : sigil === "!" ? "tk-date" : "tk-item";
+  }
+
   function ensureEntity(kind, name){
     var dict = state[kind];
     var found = null;
@@ -460,13 +612,17 @@
   /* ---------------- elements ---------------- */
   var els = {
     tabs: document.querySelectorAll("nav.tabs button"),
-    panels: { log: document.getElementById("panel-log"), characters: document.getElementById("panel-characters"), locations: document.getElementById("panel-locations") },
+    panels: {
+      log: document.getElementById("panel-log"),
+      characters: document.getElementById("panel-characters"),
+      locations: document.getElementById("panel-locations"),
+      items: document.getElementById("panel-items")
+    },
     log: document.getElementById("log"),
     composer: document.getElementById("composer"),
     mirrorInner: document.getElementById("mirrorInner"),
     dropdown: document.getElementById("dropdown"),
     datePill: document.getElementById("datePill"),
-    dateLabel: document.getElementById("dateLabel"),
     stats: document.getElementById("stats"),
     filterPill: document.getElementById("filterPill"),
     filterLabel: document.getElementById("filterLabel"),
@@ -475,15 +631,25 @@
     cancelEdit: document.getElementById("cancelEdit"),
     gridChars: document.getElementById("gridChars"),
     gridLocs: document.getElementById("gridLocs"),
+    gridItems: document.getElementById("gridItems"),
     countChars: document.getElementById("countChars"),
     countLocs: document.getElementById("countLocs"),
+    countItems: document.getElementById("countItems"),
     btnExport: document.getElementById("btnExport"),
     btnImport: document.getElementById("btnImport"),
     fileImport: document.getElementById("fileImport"),
-    btnClear: document.getElementById("btnClear")
+    btnClear: document.getElementById("btnClear"),
+    btnConfig: document.getElementById("btnConfig"),
+    configOverlay: document.getElementById("configOverlay"),
+    closeConfig: document.getElementById("closeConfig"),
+    newListLabel: document.getElementById("newListLabel"),
+    newListRole: document.getElementById("newListRole"),
+    newListUrl: document.getElementById("newListUrl"),
+    addListBtn: document.getElementById("addListBtn"),
+    listCollection: document.getElementById("listCollection")
   };
 
-  var activeFilter = null;   // {type:'character'|'location', id}
+  var activeFilter = null;   // {type:'character'|'location'|'item', id}
   var editingId = null;
   var dropdownOpen = false;
   var highlightIndex = -1;
@@ -537,9 +703,8 @@
     var segs = parseSegments(els.composer.value);
     var html = segs.map(function(seg){
       if(seg.type === "text") return escapeHtml(seg.value);
-      var cls = seg.sigil === "@" ? "tk-char" : seg.sigil === "#" ? "tk-place" : "tk-date";
       var activeCls = !seg.closed ? " tk-active" : "";
-      return '<span class="tk '+cls+activeCls+'">'+escapeHtml(seg.raw)+'</span>';
+      return '<span class="tk '+tkClassForSigil(seg.sigil)+activeCls+'">'+escapeHtml(seg.raw)+'</span>';
     }).join("");
     els.mirrorInner.innerHTML = html;
     syncScroll();
@@ -553,6 +718,17 @@
     var value = els.composer.value;
     var caret = els.composer.selectionStart;
     if(caret !== value.length) return null;
+
+    // Bare trailing sigil (nothing typed after it yet) — still worth opening the dropdown for,
+    // especially for a blank "@" which offers the random-name option.
+    var lastChar = value[value.length - 1];
+    if(lastChar === "@" || lastChar === "#" || lastChar === "$"){
+      var prevChar = value.length > 1 ? value[value.length - 2] : "";
+      if(!/[A-Za-z0-9]/.test(prevChar)){
+        return { sigil: lastChar, name: "", raw: lastChar, quoted: false, closed: true };
+      }
+    }
+
     var segs = parseSegments(value);
     var last = segs[segs.length - 1];
     if(!last || last.type !== "tag") return null;
@@ -564,7 +740,7 @@
   function updateDropdown(){
     var tag = getActiveTag();
     if(!tag){ hideDropdown(); return; }
-    var kind = tag.sigil === "@" ? "characters" : "locations";
+    var kind = kindForSigil(tag.sigil);
     var partial = tag.name.toLowerCase();
     var pool = Object.keys(state[kind]).map(function(id){ return state[kind][id]; });
     var matches = pool.filter(function(e){ return e.name.toLowerCase().indexOf(partial) !== -1; });
@@ -581,6 +757,15 @@
     if(tag.name.trim() && !exactMatch){
       currentOptions.push({ kind:kind, name:tag.name.trim(), create:true });
     }
+
+    // Blank "@" gets a rerollable random-name suggestion, pulled from user "names" lists or the built-in fallback.
+    if(tag.sigil === "@" && tag.name.trim() === ""){
+      var namePool = getNamesPool();
+      if(namePool.length){
+        currentOptions.unshift({ kind:"characters", name: pickRandom(namePool), random:true });
+      }
+    }
+
     if(currentOptions.length === 0){ hideDropdown(); return; }
 
     highlightIndex = 0;
@@ -589,23 +774,43 @@
     els.dropdown.classList.add("show");
   }
 
+  function colorForKind(kind){
+    return kind === "characters" ? "var(--teal)" : kind === "locations" ? "var(--violet)" : "var(--item)";
+  }
+
   function renderDropdown(){
-    var dotClass = currentOptions.length && currentOptions[0].kind === "characters" ? "tk-char" : "tk-place";
     els.dropdown.innerHTML = currentOptions.map(function(opt, idx){
-      var color = opt.kind === "characters" ? "var(--teal)" : "var(--violet)";
+      var color = opt.random ? "var(--gold)" : colorForKind(opt.kind);
       var cls = idx === highlightIndex ? "opt active" : "opt";
       if(opt.create) cls += " create";
-      var label = opt.create ? 'Create "'+escapeHtml(opt.name)+'"' : escapeHtml(opt.name);
+      if(opt.random) cls += " random";
+      var label;
+      if(opt.create) label = 'Create "'+escapeHtml(opt.name)+'"';
+      else if(opt.random) label = '🎲 '+escapeHtml(opt.name)+' <span class="hint">random — Ctrl+Enter to reroll</span><button type="button" class="reroll-btn" data-idx="'+idx+'" title="Reroll (Ctrl/Cmd+Enter)">↻</button>';
+      else label = escapeHtml(opt.name);
       return '<div class="'+cls+'" data-idx="'+idx+'"><span class="dot" style="background:'+color+'"></span>'+label+'</div>';
     }).join("");
   }
 
   els.dropdown.addEventListener("mousedown", function(e){
+    var rerollEl = e.target.closest(".reroll-btn");
+    if(rerollEl){
+      e.preventDefault(); e.stopPropagation();
+      rerollRandomOption(parseInt(rerollEl.dataset.idx, 10));
+      return;
+    }
     var optEl = e.target.closest(".opt");
     if(!optEl) return;
     e.preventDefault();
     acceptOption(parseInt(optEl.dataset.idx, 10));
   });
+
+  function rerollRandomOption(idx){
+    var opt = currentOptions[idx];
+    if(!opt || !opt.random) return;
+    opt.name = pickRandom(getNamesPool());
+    renderDropdown();
+  }
 
   function hideDropdown(){
     dropdownOpen = false; highlightIndex = -1; currentOptions = [];
@@ -640,6 +845,14 @@
   });
 
   els.composer.addEventListener("keydown", function(e){
+    // Reroll: Ctrl/Cmd+Enter on the random-name option picks a fresh name instead of accepting.
+    // (Tab is deliberately left alone — it's the browser's own focus-navigation key, and
+    // hijacking it just for this one option would be surprising and inconsistent.)
+    if(dropdownOpen && e.key === "Enter" && (e.ctrlKey || e.metaKey) && currentOptions[highlightIndex] && currentOptions[highlightIndex].random){
+      e.preventDefault();
+      rerollRandomOption(highlightIndex);
+      return;
+    }
     if(dropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")){
       e.preventDefault();
       var dir = e.key === "ArrowDown" ? 1 : -1;
@@ -647,7 +860,7 @@
       renderDropdown();
       return;
     }
-    if(dropdownOpen && (e.key === "Enter" || e.key === "Tab") && highlightIndex >= 0){
+    if(dropdownOpen && e.key === "Enter" && highlightIndex >= 0){
       e.preventDefault();
       acceptOption(highlightIndex);
       return;
@@ -659,9 +872,7 @@
     }
     if(e.key === "ArrowUp" && els.composer.value === "" && !dropdownOpen){
       var last = state.entries[state.entries.length - 1];
-      if(last){
-        startEditing(last);
-      }
+      if(last){ startEditing(last); }
       e.preventDefault();
       return;
     }
@@ -698,16 +909,14 @@
 
     segs.forEach(function(seg){
       if(seg.type !== "tag") return;
-      if(seg.sigil === "@"){
-        var c = ensureEntity("characters", seg.name);
-        mentions.push({ type:"character", id:c.id });
-      } else if(seg.sigil === "#"){
-        var l = ensureEntity("locations", seg.name);
-        mentions.push({ type:"location", id:l.id });
-      } else if(seg.sigil === "!"){
+      if(seg.sigil === "!"){
         entryDate = seg.name;
         state.currentDate = seg.name;
+        return;
       }
+      var kind = kindForSigil(seg.sigil);
+      var ent = ensureEntity(kind, seg.name);
+      mentions.push({ type: typeForSigil(seg.sigil), id: ent.id });
     });
 
     var now = Date.now();
@@ -754,14 +963,12 @@
         return '<span class="tk tk-date">'+escapeHtml(seg.raw)+'</span>';
       }
       var mention = mentions[mIdx]; mIdx++;
-      var cls = seg.sigil === "@" ? "tk-char" : "tk-place";
-      var type = seg.sigil === "@" ? "character" : "location";
       var id = mention ? mention.id : "";
-      return '<span class="tk '+cls+'" data-type="'+type+'" data-id="'+id+'">'+escapeHtml(seg.raw)+'</span>';
+      var type = typeForSigil(seg.sigil);
+      return '<span class="tk '+tkClassForSigil(seg.sigil)+'" data-type="'+type+'" data-id="'+id+'">'+escapeHtml(seg.raw)+'</span>';
     }).join("");
   }
 
-  var sessionCounters = {};
   function renderLog(){
     els.log.innerHTML = "";
     var entries = filteredEntries();
@@ -769,14 +976,13 @@
     if(entries.length === 0){
       var msg = activeFilter
         ? '<div class="empty"><div class="glyph">Nothing here yet</div><div>No log entries mention this one yet.</div></div>'
-        : '<div class="empty"><div class="glyph">The log is empty</div><div>Start typing below — tag people with <code>@</code>, places with <code>#</code>, and set the date with <code>!</code>.</div>' +
-          '<div class="example">!"3rd of Ches" The party meets @Bram at #"The Rusty Anchor".</div></div>';
+        : '<div class="empty"><div class="glyph">The log is empty</div><div>Start typing below — tag people with <code>@</code>, places with <code>#</code>, items with <code>$</code>, and set the date with <code>!</code>. A blank <code>@</code> fills in a random name.</div>' +
+          '<div class="example">!"3rd of Ches" The party meets @Bram at #"The Rusty Anchor" and finds a $"rusted key".</div></div>';
       els.log.innerHTML = msg;
       return;
     }
 
-    sessionCounters = {};
-    var order = [];
+    var sessionCounters = {};
     state.sessions.forEach(function(s, i){ sessionCounters[s.id] = i + 1; });
 
     var lastSession = null, lastDate = null;
@@ -815,31 +1021,34 @@
     renderLog();
   });
 
+  function dictForType(type){
+    return type === "character" ? state.characters : type === "location" ? state.locations : state.items;
+  }
+
   function renderFilterPill(){
     if(!activeFilter){ els.filterPill.classList.remove("show"); return; }
-    var dict = activeFilter.type === "character" ? state.characters : state.locations;
-    var ent = dict[activeFilter.id];
-    els.filterLabel.textContent = "Showing entries with " + (activeFilter.type === "character" ? "@" : "#") + (ent ? ent.name : "?");
+    var ent = dictForType(activeFilter.type)[activeFilter.id];
+    els.filterLabel.textContent = "Showing entries with " + sigilForType(activeFilter.type) + (ent ? ent.name : "?");
     els.filterPill.classList.add("show");
   }
   els.filterClear.addEventListener("click", function(){
     activeFilter = null; renderFilterPill(); renderLog();
   });
 
-  /* ---------------- characters / locations ---------------- */
-  function renderEntities(kind, gridEl, cardClass, sigil){
+  /* ---------------- characters / locations / items ---------------- */
+  function renderEntities(kind, gridEl, cardClass, sigil, withFairy){
     var dict = state[kind];
     var list = Object.keys(dict).map(function(id){ return dict[id]; });
     list.sort(function(a,b){ return a.name.localeCompare(b.name); });
 
     if(list.length === 0){
-      var label = kind === "characters" ? "characters" : "locations";
       gridEl.innerHTML = '<div class="empty" style="margin-top:40px;">' +
-        '<div class="glyph">No ' + label + ' yet</div>' +
+        '<div class="glyph">No ' + kind + ' yet</div>' +
         '<div>Mention someone with <code>'+sigil+'Name</code> in the Log and they\'ll show up here automatically.</div></div>';
       return;
     }
 
+    var type = typeForSigil(sigil);
     gridEl.innerHTML = "";
     list.forEach(function(ent){
       var count = state.entries.filter(function(e){
@@ -851,7 +1060,10 @@
       card.innerHTML =
         '<div class="card-head"><input class="card-name" value="'+escapeHtml(ent.name)+'"><span class="card-pill">'+sigil+'</span></div>' +
         '<textarea placeholder="Add notes about '+escapeHtml(ent.name)+'…">'+escapeHtml(ent.notes || "")+'</textarea>' +
-        '<button class="mentions-btn">Mentioned in '+count+' '+(count===1?'entry':'entries')+'</button>';
+        '<div class="card-foot">' +
+          '<button class="mentions-btn">Mentioned in '+count+' '+(count===1?'entry':'entries')+'</button>' +
+          (withFairy ? '<div class="fairy-wrap" data-ent-id="'+ent.id+'"><button class="fairy-btn" type="button">🧚 Fairy</button><div class="fairy-menu"></div></div>' : '') +
+        '</div>';
 
       var nameInput = card.querySelector(".card-name");
       nameInput.addEventListener("change", function(){
@@ -868,7 +1080,7 @@
       });
 
       card.querySelector(".mentions-btn").addEventListener("click", function(){
-        activeFilter = { type: kind === "characters" ? "character" : "location", id: ent.id };
+        activeFilter = { type: type, id: ent.id };
         renderFilterPill();
         renderLog();
         switchToLog();
@@ -878,23 +1090,163 @@
     });
   }
 
+  /* ---------------- fairy menu (event delegation, registered once) ---------------- */
+  function buildFairyMenuHtml(){
+    var fillLists = state.lists.filter(function(l){ return l.role !== "names" && l.lines && l.lines.length; });
+    var html = "";
+    if(fillLists.length === 0){
+      html += '<div class="fairy-empty">No fill lists configured yet. Add some via the ⚙ settings icon.</div>';
+    } else {
+      fillLists.forEach(function(l){
+        html += '<div class="fairy-item" data-list-id="'+l.id+'">+ '+escapeHtml(l.label)+'</div>';
+      });
+    }
+    html += '<div class="fairy-item copy-prompt" data-action="copy-prompt">📋 Copy AI art prompt</div>';
+    return html;
+  }
+
+  function setupFairyDelegation(gridEl, kind){
+    gridEl.addEventListener("click", function(e){
+      var btn = e.target.closest(".fairy-btn");
+      if(btn){
+        e.stopPropagation();
+        var wrap = btn.closest(".fairy-wrap");
+        var wasOpen = wrap.classList.contains("open");
+        document.querySelectorAll(".fairy-wrap.open").forEach(function(w){ w.classList.remove("open"); });
+        if(!wasOpen){
+          wrap.classList.add("open");
+          wrap.querySelector(".fairy-menu").innerHTML = buildFairyMenuHtml();
+        }
+        return;
+      }
+
+      var fillItem = e.target.closest(".fairy-item[data-list-id]");
+      if(fillItem){
+        var wrap2 = fillItem.closest(".fairy-wrap");
+        var ent2 = state[kind][wrap2.dataset.entId];
+        var list = state.lists.find(function(l){ return l.id === fillItem.dataset.listId; });
+        if(ent2 && list && list.lines && list.lines.length){
+          var line = pickRandom(list.lines);
+          ent2.notes = (ent2.notes ? ent2.notes.trim() + "\n" : "") + "- " + line;
+          save();
+          var textarea = wrap2.closest(".card").querySelector("textarea");
+          textarea.value = ent2.notes;
+        }
+        wrap2.classList.remove("open");
+        return;
+      }
+
+      var copyItem = e.target.closest(".fairy-item[data-action='copy-prompt']");
+      if(copyItem){
+        var wrap3 = copyItem.closest(".fairy-wrap");
+        var ent3 = state[kind][wrap3.dataset.entId];
+        if(ent3){
+          copyToClipboard(buildArtPrompt(ent3, kind));
+          copyItem.textContent = "Copied!";
+          setTimeout(function(){ wrap3.classList.remove("open"); }, 800);
+        }
+        return;
+      }
+    });
+  }
+  setupFairyDelegation(els.gridChars, "characters");
+  setupFairyDelegation(els.gridLocs, "locations");
+  document.addEventListener("click", function(){
+    document.querySelectorAll(".fairy-wrap.open").forEach(function(w){ w.classList.remove("open"); });
+  });
+
   /* ---------------- stats & top-level render ---------------- */
   function renderStats(){
     var chars = Object.keys(state.characters).length;
     var locs = Object.keys(state.locations).length;
-    els.stats.textContent = state.entries.length + " entries · " + chars + " characters · " + locs + " locations";
+    var items = Object.keys(state.items).length;
+    els.stats.textContent = state.entries.length + " entries · " + chars + " characters · " + locs + " locations · " + items + " items";
     els.countChars.textContent = chars;
     els.countLocs.textContent = locs;
+    els.countItems.textContent = items;
   }
 
   function renderAll(){
     renderDatePill();
     renderFilterPill();
     renderLog();
-    renderEntities("characters", els.gridChars, "character", "@");
-    renderEntities("locations", els.gridLocs, "location", "#");
+    renderEntities("characters", els.gridChars, "character", "@", true);
+    renderEntities("locations", els.gridLocs, "location", "#", true);
+    renderEntities("items", els.gridItems, "item", "$", false);
     renderStats();
   }
+
+  /* ---------------- config modal: random lists ---------------- */
+  function openConfig(){ els.configOverlay.classList.add("show"); renderConfigModal(); }
+  function closeConfigModal(){ els.configOverlay.classList.remove("show"); }
+  els.btnConfig.addEventListener("click", openConfig);
+  els.closeConfig.addEventListener("click", closeConfigModal);
+  els.configOverlay.addEventListener("click", function(e){ if(e.target === els.configOverlay) closeConfigModal(); });
+
+  var ROLE_LABELS = { names:"Names", style:"Style", other:"Fill" };
+
+  function renderConfigModal(){
+    if(state.lists.length === 0){
+      els.listCollection.innerHTML = '<div class="no-lists">No lists yet. Add one above — or leave this empty and RPG Fairy will use a small built-in name list for the blank-@ trick.</div>';
+      return;
+    }
+    els.listCollection.innerHTML = state.lists.map(function(l){
+      var status;
+      if(l.loading) status = '<div class="list-status">Loading…</div>';
+      else if(l.error) status = '<div class="list-status error">'+escapeHtml(l.error)+'</div>';
+      else if(l.lines && l.lines.length) status = '<div class="list-status">'+l.lines.length+' lines · updated '+new Date(l.lastFetched).toLocaleTimeString()+'</div>';
+      else status = '<div class="list-status">Not loaded yet</div>';
+      return '<div class="list-row" data-list-id="'+l.id+'">' +
+        '<div class="list-row-main"><strong>'+escapeHtml(l.label)+'</strong><span class="role-tag">'+ROLE_LABELS[l.role]+'</span>'+status+'</div>' +
+        '<div class="list-row-actions"><button class="mini-btn refresh" type="button">Refresh</button><button class="mini-btn remove" type="button">Remove</button></div>' +
+      '</div>';
+    }).join("");
+  }
+
+  els.listCollection.addEventListener("click", function(e){
+    var row = e.target.closest(".list-row");
+    if(!row) return;
+    var list = state.lists.find(function(l){ return l.id === row.dataset.listId; });
+    if(!list) return;
+    if(e.target.closest(".refresh")){ fetchList(list); }
+    if(e.target.closest(".remove")){
+      if(confirm('Remove "' + list.label + '"?')){
+        state.lists = state.lists.filter(function(l){ return l.id !== list.id; });
+        save(); renderConfigModal();
+      }
+    }
+  });
+
+  function fetchList(list){
+    list.loading = true; list.error = "";
+    renderConfigModal();
+    fetch(list.url).then(function(res){
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    }).then(function(text){
+      list.lines = text.split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+      list.lastFetched = Date.now();
+      list.error = "";
+    }).catch(function(err){
+      list.error = "Couldn't load (" + err.message + "). Needs a raw text URL with CORS allowed — raw.githubusercontent.com works well.";
+    }).finally(function(){
+      list.loading = false;
+      save(); renderConfigModal();
+    });
+  }
+
+  els.addListBtn.addEventListener("click", function(){
+    var label = els.newListLabel.value.trim();
+    var role = els.newListRole.value;
+    var url = els.newListUrl.value.trim();
+    if(!label || !url){ alert("Give the list a label and a URL first."); return; }
+    var list = { id: uid(), label: label, role: role, url: url, lines: [], lastFetched: null, error: "", loading: false };
+    state.lists.push(list);
+    els.newListLabel.value = ""; els.newListUrl.value = ""; els.newListRole.value = "other";
+    save();
+    renderConfigModal();
+    fetchList(list);
+  });
 
   /* ---------------- export / import / clear ---------------- */
   els.btnExport.addEventListener("click", function(){
@@ -929,7 +1281,7 @@
   });
 
   els.btnClear.addEventListener("click", function(){
-    if(!confirm("This clears everything in this browser — characters, locations, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
+    if(!confirm("This clears everything in this browser — characters, locations, items, lists, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
     state = defaultState();
     activeFilter = null;
     save(); renderAll();
