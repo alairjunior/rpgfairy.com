@@ -161,6 +161,18 @@
   .entry:hover{ background:var(--panel); }
   .entry .time{ color:var(--text-faint); font-size:11.5px; padding-top:3px; flex:none; width:56px; }
   .entry .text{ color:var(--text); overflow-wrap:anywhere; }
+  .entry.struck .text{ text-decoration:line-through; text-decoration-color:var(--text-faint); opacity:.55; }
+  .entry-actions{
+    display:flex; gap:2px; margin-left:auto; flex:none; opacity:.28;
+    transition:opacity .15s; align-self:flex-start;
+  }
+  .entry:hover .entry-actions, .entry-actions:focus-within{ opacity:1; }
+  .entry-strike, .entry-delete{
+    border:none; background:none; color:var(--text-dim); cursor:pointer;
+    font-size:12px; padding:3px 6px; border-radius:5px; line-height:1;
+  }
+  .entry-strike:hover{ color:var(--gold); background:var(--panel-2); }
+  .entry-delete:hover{ color:var(--danger); background:var(--panel-2); }
   @media (prefers-reduced-motion: no-preference){
     .entry.new{ animation:rise .28s ease-out; }
   }
@@ -277,11 +289,11 @@
   }
   .fairy-btn:hover{ color:var(--text); border-color:var(--gold); }
   .fairy-menu{
-    display:none; position:absolute; bottom:calc(100% + 6px); right:0; min-width:200px;
+    display:none; position:fixed; min-width:200px;
     background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
-    box-shadow:0 14px 34px -14px rgba(0,0,0,.7); z-index:6; overflow:hidden;
+    box-shadow:0 14px 34px -14px rgba(0,0,0,.7); z-index:60; overflow:hidden;
   }
-  .fairy-wrap.open .fairy-menu{ display:block; }
+  .fairy-menu.show{ display:block; }
   .fairy-item{ padding:8px 12px; font-size:12px; color:var(--text-dim); cursor:pointer; }
   .fairy-item:hover{ background:var(--panel); color:var(--text); }
   .fairy-item.copy-prompt{ border-top:1px solid var(--line); color:var(--gold); }
@@ -431,7 +443,7 @@
       </button>
     </div>
     <p class="modal-help">
-      Add plain-text lists (one entry per line) hosted at a raw URL — GitHub raw links (<code>raw.githubusercontent.com</code>) work reliably. <strong>Names</strong> lists power a blank <code>@</code> in the log. <strong>Style</strong> lists feed the AI art-prompt line on character/location cards. Everything else appears as a quick-fill option under the 🧚 Fairy button. Lists are cached after loading, so a bad connection at the table won't break anything.
+      A few starter lists (Names, Physical Traits, Contradictions, Fantasy Illustration Style) load automatically if reachable — remove any you don't want and they won't come back. Add your own too: plain-text, one entry per line, hosted at a raw URL — GitHub raw links (<code>raw.githubusercontent.com</code>) work reliably. <strong>Names</strong> lists power a blank <code>@</code> in the log. <strong>Style</strong> lists feed the AI art-prompt line on character/location cards. Everything else appears as a quick-fill option under the 🧚 Fairy button. Lists are cached after loading, so a bad connection at the table won't break anything.
     </p>
 
     <div class="list-form">
@@ -465,10 +477,20 @@
   ];
   var DEFAULT_STYLE = "fantasy digital painting, detailed, atmospheric lighting";
 
+  // Auto-seeded starter lists, hosted on rpgfairy.com's own GitHub repo. These are only ever
+  // added if they're actually reachable (checked at load time) and only once — if an alpha
+  // user deletes one, we remember that in state.dismissedDefaults and won't re-add it.
+  var DEFAULT_LIST_SOURCES = [
+    { label:"Names", role:"names", url:"https://raw.githubusercontent.com/alairjunior/rpgfairy.com/refs/heads/main/journal/lists/names.txt" },
+    { label:"Physical Traits", role:"other", url:"https://raw.githubusercontent.com/alairjunior/rpgfairy.com/refs/heads/main/journal/lists/physical_traits.txt" },
+    { label:"Contradictions", role:"other", url:"https://raw.githubusercontent.com/alairjunior/rpgfairy.com/refs/heads/main/journal/lists/contradictions.txt" },
+    { label:"Fantasy Illustration Style", role:"style", url:"https://raw.githubusercontent.com/alairjunior/rpgfairy.com/refs/heads/main/journal/lists/style_fantasy_illustration.txt" }
+  ];
+
   var state = load();
 
   function defaultState(){
-    return { currentDate:"", entries:[], characters:{}, locations:{}, items:{}, sessions:[], lists:[] };
+    return { currentDate:"", entries:[], characters:{}, locations:{}, items:{}, sessions:[], lists:[], dismissedDefaults:[] };
   }
   function load(){
     try{
@@ -1005,8 +1027,14 @@
         els.log.appendChild(dd);
       }
       var row = document.createElement("div");
-      row.className = "entry new";
-      row.innerHTML = '<span class="time">'+fmtTime(entry.createdAt)+'</span><span class="text">'+renderEntrySegments(entry.raw, entry.mentions)+'</span>';
+      row.className = "entry new" + (entry.struck ? " struck" : "");
+      row.innerHTML =
+        '<span class="time">'+fmtTime(entry.createdAt)+'</span>' +
+        '<span class="text">'+renderEntrySegments(entry.raw, entry.mentions)+'</span>' +
+        '<span class="entry-actions">' +
+          '<button class="entry-strike" data-id="'+entry.id+'" title="'+(entry.struck ? "Restore" : "Strike out (keep, mark as retconned)")+'">'+(entry.struck ? "↺" : "S̶")+'</button>' +
+          '<button class="entry-delete" data-id="'+entry.id+'" title="Delete permanently">🗑</button>' +
+        '</span>';
       els.log.appendChild(row);
     });
 
@@ -1015,10 +1043,26 @@
 
   els.log.addEventListener("click", function(e){
     var tag = e.target.closest(".tk[data-id]");
-    if(!tag || !tag.dataset.id) return;
-    activeFilter = { type: tag.dataset.type, id: tag.dataset.id };
-    renderFilterPill();
-    renderLog();
+    if(tag && tag.dataset.id){
+      activeFilter = { type: tag.dataset.type, id: tag.dataset.id };
+      renderFilterPill();
+      renderLog();
+      return;
+    }
+    var strikeBtn = e.target.closest(".entry-strike");
+    if(strikeBtn){
+      var entry = state.entries.find(function(en){ return en.id === strikeBtn.dataset.id; });
+      if(entry){ entry.struck = !entry.struck; save(); renderLog(); }
+      return;
+    }
+    var delBtn = e.target.closest(".entry-delete");
+    if(delBtn){
+      if(confirm("Delete this log entry? This can't be undone — if you just want to mark it as retconned, use strike-out instead.")){
+        state.entries = state.entries.filter(function(en){ return en.id !== delBtn.dataset.id; });
+        save(); renderAll();
+      }
+      return;
+    }
   });
 
   function dictForType(type){
@@ -1105,6 +1149,35 @@
     return html;
   }
 
+  function closeAllFairyMenus(){
+    document.querySelectorAll(".fairy-wrap.open").forEach(function(w){ w.classList.remove("open"); });
+    document.querySelectorAll(".fairy-menu.show").forEach(function(m){ m.classList.remove("show"); });
+  }
+
+  function openFairyMenu(wrap){
+    closeAllFairyMenus();
+    var btn = wrap.querySelector(".fairy-btn");
+    var menu = wrap.querySelector(".fairy-menu");
+    menu.innerHTML = buildFairyMenuHtml();
+    menu.classList.add("show");
+    wrap.classList.add("open");
+
+    // Position via getBoundingClientRect + position:fixed rather than CSS-anchored
+    // absolute positioning — that way the menu can never be clipped by an ancestor's
+    // overflow:auto (e.g. the card grid's scroll container), regardless of where the
+    // card sits in the list.
+    var rect = btn.getBoundingClientRect();
+    var menuRect = menu.getBoundingClientRect();
+    var spaceBelow = window.innerHeight - rect.bottom;
+    var openUp = spaceBelow < menuRect.height + 12 && rect.top > menuRect.height + 12;
+    var top = openUp ? (rect.top - menuRect.height - 6) : (rect.bottom + 6);
+    top = Math.max(8, Math.min(top, window.innerHeight - menuRect.height - 8));
+    var left = Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 8);
+    left = Math.max(8, left);
+    menu.style.top = top + "px";
+    menu.style.left = left + "px";
+  }
+
   function setupFairyDelegation(gridEl, kind){
     gridEl.addEventListener("click", function(e){
       var btn = e.target.closest(".fairy-btn");
@@ -1112,11 +1185,8 @@
         e.stopPropagation();
         var wrap = btn.closest(".fairy-wrap");
         var wasOpen = wrap.classList.contains("open");
-        document.querySelectorAll(".fairy-wrap.open").forEach(function(w){ w.classList.remove("open"); });
-        if(!wasOpen){
-          wrap.classList.add("open");
-          wrap.querySelector(".fairy-menu").innerHTML = buildFairyMenuHtml();
-        }
+        closeAllFairyMenus();
+        if(!wasOpen) openFairyMenu(wrap);
         return;
       }
 
@@ -1138,12 +1208,13 @@
 
       var copyItem = e.target.closest(".fairy-item[data-action='copy-prompt']");
       if(copyItem){
+        e.stopPropagation();
         var wrap3 = copyItem.closest(".fairy-wrap");
         var ent3 = state[kind][wrap3.dataset.entId];
         if(ent3){
           copyToClipboard(buildArtPrompt(ent3, kind));
           copyItem.textContent = "Copied!";
-          setTimeout(function(){ wrap3.classList.remove("open"); }, 800);
+          setTimeout(closeAllFairyMenus, 800);
         }
         return;
       }
@@ -1151,9 +1222,9 @@
   }
   setupFairyDelegation(els.gridChars, "characters");
   setupFairyDelegation(els.gridLocs, "locations");
-  document.addEventListener("click", function(){
-    document.querySelectorAll(".fairy-wrap.open").forEach(function(w){ w.classList.remove("open"); });
-  });
+  document.addEventListener("click", closeAllFairyMenus);
+  document.addEventListener("scroll", closeAllFairyMenus, true);
+  window.addEventListener("resize", closeAllFairyMenus);
 
   /* ---------------- stats & top-level render ---------------- */
   function renderStats(){
@@ -1211,6 +1282,11 @@
     if(e.target.closest(".refresh")){ fetchList(list); }
     if(e.target.closest(".remove")){
       if(confirm('Remove "' + list.label + '"?')){
+        var wasDefault = DEFAULT_LIST_SOURCES.some(function(s){ return s.url === list.url; });
+        if(wasDefault){
+          state.dismissedDefaults = state.dismissedDefaults || [];
+          if(state.dismissedDefaults.indexOf(list.url) === -1) state.dismissedDefaults.push(list.url);
+        }
         state.lists = state.lists.filter(function(l){ return l.id !== list.id; });
         save(); renderConfigModal();
       }
@@ -1232,6 +1308,29 @@
     }).finally(function(){
       list.loading = false;
       save(); renderConfigModal();
+    });
+  }
+
+  function seedDefaultLists(){
+    DEFAULT_LIST_SOURCES.forEach(function(src){
+      var alreadyHave = state.lists.some(function(l){ return l.url === src.url; });
+      var dismissed = (state.dismissedDefaults || []).indexOf(src.url) !== -1;
+      if(alreadyHave || dismissed) return;
+      fetch(src.url).then(function(res){
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      }).then(function(text){
+        var lines = text.split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+        if(!lines.length) return;
+        // Guard against a race: don't add it if it was added or dismissed while this fetch was in flight.
+        if(state.lists.some(function(l){ return l.url === src.url; })) return;
+        if((state.dismissedDefaults || []).indexOf(src.url) !== -1) return;
+        state.lists.push({ id: uid(), label: src.label, role: src.role, url: src.url, lines: lines, lastFetched: Date.now(), error: "", loading: false });
+        save();
+        renderConfigModal();
+      }).catch(function(err){
+        console.warn("Default list unavailable — " + src.label + ":", err.message);
+      });
     });
   }
 
@@ -1289,6 +1388,7 @@
 
   /* ---------------- init ---------------- */
   renderAll();
+  seedDefaultLists();
   els.composer.focus();
 
 })();
