@@ -259,7 +259,18 @@
   .entities-scroll{ flex:1; overflow-y:auto; padding:6px 2px 30px; }
   .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:12px; margin-top:4px; }
   .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
-  .card-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .card-head{ display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+  .card-head-main{ flex:1; min-width:0; }
+  .card-head-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .card-thumb{
+    position:relative; flex:none; width:52px; height:52px; border-radius:10px;
+    background:var(--panel-2); border:1px solid var(--line); overflow:hidden;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .card-thumb:hover{ border-color:var(--gold); }
+  .card-thumb img{ width:100%; height:100%; object-fit:cover; display:none; }
+  .card-thumb .placeholder{ color:var(--text-faint); font-size:18px; line-height:1; pointer-events:none; }
+  .card-thumb input[type="file"]{ display:none; }
   .card-name{
     font-family:var(--font-display); font-weight:600; font-size:16px; background:transparent;
     border:none; color:var(--text); width:100%; padding:2px 0; outline:none; border-bottom:1px solid transparent;
@@ -323,6 +334,27 @@
   .mini-btn:hover{ color:var(--text); }
   .mini-btn.remove:hover{ color:var(--danger); border-color:var(--danger); }
   .no-lists{ font-size:12.5px; color:var(--text-faint); padding:4px 0; line-height:1.5; }
+
+  /* ---------- photo modal ---------- */
+  .photo-modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;
+    width:100%; max-width:480px; max-height:88vh; display:flex; flex-direction:column; gap:14px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.7);
+  }
+  .photo-modal-head{ display:flex; align-items:center; justify-content:space-between; }
+  .photo-modal-head span{ font-family:var(--font-display); font-weight:600; font-size:16px; }
+  .photo-modal-body{
+    display:flex; align-items:center; justify-content:center; background:var(--panel-2);
+    border:1px solid var(--line); border-radius:10px; overflow:hidden; min-height:220px;
+  }
+  .photo-modal-body img{ max-width:100%; max-height:62vh; display:block; object-fit:contain; }
+  .photo-modal-actions{ display:flex; gap:8px; }
+  .photo-btn{
+    flex:1; font-size:12.5px; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:10px 12px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .photo-btn:hover{ border-color:var(--gold); }
+  .photo-btn.danger:hover{ border-color:var(--danger); color:var(--danger); }
 
   @media (max-width:640px){
     header{ gap:12px; }
@@ -461,6 +493,26 @@
   </div>
 </div>
 
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="photoOverlay">
+  <div class="photo-modal" role="dialog" aria-label="Photo">
+    <div class="photo-modal-head">
+      <span id="photoModalTitle"></span>
+      <button class="icon-btn" id="closePhotoModal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="photo-modal-body">
+      <img id="photoModalImg" alt="">
+    </div>
+    <div class="photo-modal-actions">
+      <button class="photo-btn" id="photoModalChange" type="button">Change photo</button>
+      <button class="photo-btn danger" id="photoModalDelete" type="button">Delete photo</button>
+    </div>
+    <input type="file" id="modalFileInput" accept="image/*" hidden>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -522,6 +574,169 @@
       return merged;
     }
     return DEFAULT_NAMES;
+  }
+
+  /* ---------------- images: IndexedDB (localStorage is too small/text-only for photos) ---------------- */
+  var IMG_DB_NAME = "rpgfairy-images";
+  var IMG_STORE = "images";
+  var imgDbPromise = null;
+
+  function openImgDb(){
+    if(imgDbPromise) return imgDbPromise;
+    imgDbPromise = new Promise(function(resolve, reject){
+      if(!window.indexedDB){ reject(new Error("IndexedDB not available in this browser")); return; }
+      var req = indexedDB.open(IMG_DB_NAME, 1);
+      req.onupgradeneeded = function(){
+        if(!req.result.objectStoreNames.contains(IMG_STORE)) req.result.createObjectStore(IMG_STORE);
+      };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    return imgDbPromise;
+  }
+  function idbSet(key, blob){
+    return openImgDb().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(IMG_STORE, "readwrite");
+        tx.objectStore(IMG_STORE).put(blob, key);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbGet(key){
+    return openImgDb().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(IMG_STORE, "readonly");
+        var req = tx.objectStore(IMG_STORE).get(key);
+        req.onsuccess = function(){ resolve(req.result || null); };
+        req.onerror = function(){ reject(req.error); };
+      });
+    });
+  }
+  function idbDelete(key){
+    return openImgDb().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(IMG_STORE, "readwrite");
+        tx.objectStore(IMG_STORE).delete(key);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbClear(){
+    return openImgDb().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(IMG_STORE, "readwrite");
+        tx.objectStore(IMG_STORE).clear();
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbAllEntries(){
+    return openImgDb().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(IMG_STORE, "readonly");
+        var store = tx.objectStore(IMG_STORE);
+        var out = [];
+        var req = store.openCursor();
+        req.onsuccess = function(e){
+          var cursor = e.target.result;
+          if(cursor){ out.push([cursor.key, cursor.value]); cursor.continue(); }
+          else resolve(out);
+        };
+        req.onerror = function(){ reject(req.error); };
+      });
+    });
+  }
+
+  // Resizes + compresses an uploaded image client-side so a phone photo (often 3-10MB)
+  // becomes a small, fast-loading thumbnail (typically well under 200KB) before it's stored.
+  function processImageFile(file){
+    return new Promise(function(resolve, reject){
+      if(!file.type || file.type.indexOf("image/") !== 0){ reject(new Error("That's not an image file")); return; }
+      if(file.size > 15 * 1024 * 1024){ reject(new Error("That image is quite large (15MB+) — try a smaller file")); return; }
+      var objUrl = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        URL.revokeObjectURL(objUrl);
+        var maxDim = 640;
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var w = Math.max(1, Math.round(img.width * scale));
+        var h = Math.max(1, Math.round(img.height * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function(blob){
+          if(blob) resolve(blob); else reject(new Error("Couldn't process that image"));
+        }, "image/jpeg", 0.82);
+      };
+      img.onerror = function(){ URL.revokeObjectURL(objUrl); reject(new Error("Couldn't read that image")); };
+      img.src = objUrl;
+    });
+  }
+  function blobToDataUrl(blob){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = function(){ reject(reader.error); };
+      reader.readAsDataURL(blob);
+    });
+  }
+  function dataUrlToBlob(dataUrl){
+    return fetch(dataUrl).then(function(res){ return res.blob(); });
+  }
+
+  // Tracks the object URLs handed to <img> thumbnails so they can be revoked before
+  // replacement — without this, every re-render would leak browser memory.
+  var thumbObjectUrls = {};
+  function setThumbImage(imgEl, placeholderEl, kind, entId, blob){
+    var key = kind + ":" + entId;
+    if(thumbObjectUrls[key]) URL.revokeObjectURL(thumbObjectUrls[key]);
+    var url = URL.createObjectURL(blob);
+    thumbObjectUrls[key] = url;
+    imgEl.src = url;
+    imgEl.style.display = "block";
+    if(placeholderEl) placeholderEl.style.display = "none";
+  }
+  function revokeAllThumbUrls(){
+    Object.keys(thumbObjectUrls).forEach(function(k){ URL.revokeObjectURL(thumbObjectUrls[k]); });
+    thumbObjectUrls = {};
+  }
+
+  // Shared by the per-card upload input and the photo modal's "Change photo" button.
+  function handlePhotoFile(kind, entId, file){
+    return processImageFile(file).then(function(blob){
+      return idbSet(entId, blob).then(function(){
+        var ent = state[kind][entId];
+        if(ent) ent.hasImage = true;
+        save();
+        return blob;
+      });
+    });
+  }
+
+  /* ---------------- photo modal (full-size view / change / delete) ---------------- */
+  var modalKind = null, modalEntId = null, modalImgUrl = null;
+
+  function openPhotoModal(kind, ent){
+    modalKind = kind; modalEntId = ent.id;
+    els.photoModalTitle.textContent = ent.name;
+    els.photoModalImg.removeAttribute("src");
+    els.photoOverlay.classList.add("show");
+    idbGet(ent.id).then(function(blob){
+      if(!blob || modalEntId !== ent.id) return; // stale response after a fast close/reopen
+      if(modalImgUrl) URL.revokeObjectURL(modalImgUrl);
+      modalImgUrl = URL.createObjectURL(blob);
+      els.photoModalImg.src = modalImgUrl;
+    });
+  }
+  function closePhotoModal(){
+    els.photoOverlay.classList.remove("show");
+    if(modalImgUrl){ URL.revokeObjectURL(modalImgUrl); modalImgUrl = null; }
+    modalKind = null; modalEntId = null;
   }
 
   function copyToClipboard(text){
@@ -614,7 +829,7 @@
       if(!found && dict[id].name.toLowerCase() === name.toLowerCase()) found = dict[id];
     });
     if(found) return found;
-    var ent = { id: uid(), name: name, notes: "", createdAt: Date.now() };
+    var ent = { id: uid(), name: name, notes: "", createdAt: Date.now(), hasImage: false };
     dict[ent.id] = ent;
     return ent;
   }
@@ -668,8 +883,50 @@
     newListRole: document.getElementById("newListRole"),
     newListUrl: document.getElementById("newListUrl"),
     addListBtn: document.getElementById("addListBtn"),
-    listCollection: document.getElementById("listCollection")
+    listCollection: document.getElementById("listCollection"),
+    photoOverlay: document.getElementById("photoOverlay"),
+    photoModalTitle: document.getElementById("photoModalTitle"),
+    photoModalImg: document.getElementById("photoModalImg"),
+    closePhotoModal: document.getElementById("closePhotoModal"),
+    photoModalChange: document.getElementById("photoModalChange"),
+    photoModalDelete: document.getElementById("photoModalDelete"),
+    modalFileInput: document.getElementById("modalFileInput")
   };
+
+  /* ---------------- photo modal: wire up listeners (must come after els exists) ---------------- */
+  els.closePhotoModal.addEventListener("click", closePhotoModal);
+  els.photoOverlay.addEventListener("click", function(e){ if(e.target === els.photoOverlay) closePhotoModal(); });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && els.photoOverlay.classList.contains("show")) closePhotoModal();
+  });
+  els.photoModalChange.addEventListener("click", function(){ els.modalFileInput.click(); });
+  els.modalFileInput.addEventListener("change", function(){
+    var file = els.modalFileInput.files[0];
+    els.modalFileInput.value = "";
+    if(!file || !modalKind || !modalEntId) return;
+    var kind = modalKind, entId = modalEntId;
+    handlePhotoFile(kind, entId, file).then(function(blob){
+      renderAll();
+      if(modalEntId !== entId) return; // modal was closed/switched mid-upload
+      if(modalImgUrl) URL.revokeObjectURL(modalImgUrl);
+      modalImgUrl = URL.createObjectURL(blob);
+      els.photoModalImg.src = modalImgUrl;
+    }).catch(function(err){
+      alert("Couldn't use that photo: " + err.message);
+    });
+  });
+  els.photoModalDelete.addEventListener("click", function(){
+    if(!modalKind || !modalEntId) return;
+    if(!confirm("Delete this photo? The entity itself won't be affected.")) return;
+    var kind = modalKind, entId = modalEntId;
+    idbDelete(entId).then(function(){
+      var ent = state[kind][entId];
+      if(ent) ent.hasImage = false;
+      save();
+      closePhotoModal();
+      renderAll();
+    });
+  });
 
   var activeFilter = null;   // {type:'character'|'location'|'item', id}
   var editingId = null;
@@ -1102,12 +1359,30 @@
       var card = document.createElement("div");
       card.className = "card " + cardClass;
       card.innerHTML =
-        '<div class="card-head"><input class="card-name" value="'+escapeHtml(ent.name)+'"><span class="card-pill">'+sigil+'</span></div>' +
+        '<div class="card-head">' +
+          '<label class="card-thumb" title="'+(ent.hasImage ? "View photo" : "Add a photo")+'">' +
+            '<img alt="">' +
+            '<span class="placeholder">🖼</span>' +
+            '<input type="file" accept="image/*">' +
+          '</label>' +
+          '<div class="card-head-main">' +
+            '<div class="card-head-row"><input class="card-name" value="'+escapeHtml(ent.name)+'"><span class="card-pill">'+sigil+'</span></div>' +
+          '</div>' +
+        '</div>' +
         '<textarea placeholder="Add notes about '+escapeHtml(ent.name)+'…">'+escapeHtml(ent.notes || "")+'</textarea>' +
         '<div class="card-foot">' +
           '<button class="mentions-btn">Mentioned in '+count+' '+(count===1?'entry':'entries')+'</button>' +
           (withFairy ? '<div class="fairy-wrap" data-ent-id="'+ent.id+'"><button class="fairy-btn" type="button">🧚 Fairy</button><div class="fairy-menu"></div></div>' : '') +
         '</div>';
+
+      if(ent.hasImage){
+        idbGet(ent.id).then(function(blob){
+          if(!blob) return;
+          var imgEl = card.querySelector(".card-thumb img");
+          var placeholderEl = card.querySelector(".card-thumb .placeholder");
+          if(imgEl) setThumbImage(imgEl, placeholderEl, kind, ent.id, blob);
+        }).catch(function(err){ console.warn("Couldn't load photo for " + ent.name, err); });
+      }
 
       var nameInput = card.querySelector(".card-name");
       nameInput.addEventListener("change", function(){
@@ -1121,6 +1396,28 @@
       notesArea.addEventListener("input", function(){
         clearTimeout(saveTimer);
         saveTimer = setTimeout(function(){ ent.notes = notesArea.value; save(); }, 400);
+      });
+
+      // A photo already present: clicking the thumbnail opens the full-size modal (view/change/delete)
+      // instead of the file picker. No photo yet: let the label's native behavior open the file picker.
+      var thumbLabel = card.querySelector(".card-thumb");
+      thumbLabel.addEventListener("click", function(e){
+        if(ent.hasImage){
+          e.preventDefault();
+          openPhotoModal(kind, ent);
+        }
+      });
+
+      var fileInput = card.querySelector('.card-thumb input[type="file"]');
+      fileInput.addEventListener("change", function(){
+        var file = fileInput.files[0];
+        fileInput.value = "";
+        if(!file) return;
+        handlePhotoFile(kind, ent.id, file).then(function(){
+          renderAll();
+        }).catch(function(err){
+          alert("Couldn't use that photo: " + err.message);
+        });
       });
 
       card.querySelector(".mentions-btn").addEventListener("click", function(){
@@ -1348,14 +1645,32 @@
   });
 
   /* ---------------- export / import / clear ---------------- */
-  els.btnExport.addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+  function downloadJson(obj){
+    var blob = new Blob([JSON.stringify(obj, null, 2)], { type:"application/json" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     var stamp = new Date().toISOString().slice(0,10);
     a.href = url; a.download = "rpgfairy-journal-" + stamp + ".json";
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  els.btnExport.addEventListener("click", function(){
+    els.btnExport.disabled = true;
+    idbAllEntries().then(function(entries){
+      return Promise.all(entries.map(function(pair){
+        return blobToDataUrl(pair[1]).then(function(dataUrl){ return [pair[0], dataUrl]; });
+      }));
+    }).then(function(pairs){
+      var images = {};
+      pairs.forEach(function(p){ images[p[0]] = p[1]; });
+      downloadJson(Object.assign({}, state, { images: images }));
+    }).catch(function(err){
+      console.warn("Couldn't bundle photos into export, exporting text data only:", err);
+      downloadJson(state);
+    }).finally(function(){
+      els.btnExport.disabled = false;
+    });
   });
 
   els.btnImport.addEventListener("click", function(){ els.fileImport.click(); });
@@ -1364,25 +1679,47 @@
     if(!file) return;
     var reader = new FileReader();
     reader.onload = function(){
+      var parsed;
       try{
-        var parsed = JSON.parse(reader.result);
+        parsed = JSON.parse(reader.result);
         if(!parsed || !Array.isArray(parsed.entries)) throw new Error("Not a valid journal file");
-        if(!confirm("Import will replace your current journal in this browser. Continue?")) return;
-        state = Object.assign(defaultState(), parsed);
-        activeFilter = null;
-        save(); renderAll();
       }catch(err){
         alert("Couldn't read that file — is it a journal export?");
+        els.fileImport.value = "";
+        return;
       }
-      els.fileImport.value = "";
+      if(!confirm("Import will replace your current journal in this browser, including any saved photos. Continue?")){
+        els.fileImport.value = "";
+        return;
+      }
+      var images = parsed.images || {};
+      delete parsed.images; // raw data-URLs don't belong in the persisted localStorage state
+      closePhotoModal();
+      state = Object.assign(defaultState(), parsed);
+      activeFilter = null;
+      revokeAllThumbUrls();
+      idbClear().then(function(){
+        var ids = Object.keys(images);
+        return Promise.all(ids.map(function(id){
+          return dataUrlToBlob(images[id]).then(function(blob){ return idbSet(id, blob); });
+        }));
+      }).catch(function(err){
+        console.warn("Some photos couldn't be restored on import:", err);
+      }).finally(function(){
+        save(); renderAll();
+        els.fileImport.value = "";
+      });
     };
     reader.readAsText(file);
   });
 
   els.btnClear.addEventListener("click", function(){
-    if(!confirm("This clears everything in this browser — characters, locations, items, lists, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
+    if(!confirm("This clears everything in this browser — characters, locations, items, photos, lists, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
+    closePhotoModal();
     state = defaultState();
     activeFilter = null;
+    revokeAllThumbUrls();
+    idbClear().catch(function(err){ console.warn("Couldn't clear stored photos:", err); });
     save(); renderAll();
   });
 
