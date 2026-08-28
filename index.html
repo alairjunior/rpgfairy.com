@@ -178,7 +178,7 @@
     .entry.new{ animation:rise .28s ease-out; }
   }
 
-  /* ---------- encounters ---------- */
+  /* ---------- threads ---------- */
   .enc-list{
     flex:1; overflow-y:auto; padding:4px 2px 18px;
     display:flex; flex-direction:column; gap:10px;
@@ -190,20 +190,20 @@
   }
   .enc-section-head:first-child{ margin-top:2px; }
   .enc-section-head::after{ content:''; flex:1; height:1px; background:var(--line-soft); }
-  .encounter-card{
+  .thread-card{
     position:relative; background:var(--panel); border:1px solid var(--line);
     border-radius:12px; padding:14px 14px 14px 14px;
   }
-  .encounter-card .desc{
+  .thread-card .desc{
     font-family:var(--font-mono); font-size:13.5px; line-height:1.65; color:var(--text);
     margin:10px 0 6px; overflow-wrap:anywhere;
   }
-  .encounter-card .meta{ font-size:11px; color:var(--text-faint); margin-bottom:10px; }
-  .encounter-card textarea{
+  .thread-card .meta{ font-size:11px; color:var(--text-faint); margin-bottom:10px; }
+  .thread-card textarea{
     width:100%; min-height:56px; resize:vertical; background:var(--panel-2); border:1px solid var(--line);
     border-radius:8px; padding:8px 10px; font-size:12.5px; color:var(--text); outline:none; margin-bottom:8px;
   }
-  .encounter-card textarea:focus{ border-color:var(--text-faint); }
+  .thread-card textarea:focus{ border-color:var(--text-faint); }
   .status-picker{ display:flex; gap:4px; padding-right:26px; }
   .status-btn{
     font-size:10.5px; padding:3px 10px; border-radius:999px; border:1px solid var(--line);
@@ -213,12 +213,12 @@
   .status-btn.planned.active{ background:var(--gold-dim); border-color:#4a3c1f; color:var(--gold); }
   .status-btn.resolved.active{ background:var(--teal-dim); border-color:#1e4a37; color:var(--teal); }
   .status-btn.skipped.active{ background:var(--panel-2); border-color:var(--line); color:var(--text-faint); text-decoration:line-through; }
-  .encounter-delete{
+  .thread-delete{
     position:absolute; top:12px; right:12px; border:none; background:none; color:var(--text-dim);
     cursor:pointer; font-size:12px; padding:3px 6px; border-radius:5px; opacity:.28; transition:opacity .15s;
   }
-  .encounter-card:hover .encounter-delete, .encounter-delete:focus-visible{ opacity:1; }
-  .encounter-delete:hover{ color:var(--danger); background:var(--panel-2); }
+  .thread-card:hover .thread-delete, .thread-delete:focus-visible{ opacity:1; }
+  .thread-delete:hover{ color:var(--danger); background:var(--panel-2); }
   @keyframes rise{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
 
   /* NOTE: chips use box-shadow, not padding, for the colored "pill" look.
@@ -419,7 +419,7 @@
 
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="log" aria-selected="true">Log</button>
-      <button role="tab" data-tab="encounters" aria-selected="false">Encounters <span class="count" id="countEnc">0</span></button>
+      <button role="tab" data-tab="threads" aria-selected="false">Threads <span class="count" id="countEnc">0</span></button>
       <button role="tab" data-tab="characters" aria-selected="false">Characters <span class="count" id="countChars">0</span></button>
       <button role="tab" data-tab="locations" aria-selected="false">Locations <span class="count" id="countLocs">0</span></button>
       <button role="tab" data-tab="items" aria-selected="false">Items <span class="count" id="countItems">0</span></button>
@@ -483,7 +483,7 @@
     </section>
 
     <!-- ENCOUNTERS -->
-    <section class="panel" id="panel-encounters">
+    <section class="panel" id="panel-threads">
       <div class="log-meta">
         <div class="stats" id="encStats"></div>
       </div>
@@ -499,7 +499,7 @@
 
       <div class="composer-wrap">
         <div class="editing-badge" id="encEditingBadge">
-          Editing last encounter <button id="encCancelEdit">cancel</button>
+          Editing last thread <button id="encCancelEdit">cancel</button>
         </div>
         <div class="legend">
           <span><i class="lc"></i>@ character (blank @ = random name)</span>
@@ -510,7 +510,7 @@
         <div class="input-shell">
           <div class="dropdown" id="encDropdown"></div>
           <div class="mirror"><div class="mirror-inner" id="encMirrorInner"></div></div>
-          <input class="composer" id="encComposer" placeholder="@who  #where  $what — describe the encounter…" autocomplete="off" spellcheck="false">
+          <input class="composer" id="encComposer" placeholder="@who  #where  $what — describe the thread…" autocomplete="off" spellcheck="false">
           <span class="send-hint">↵ plan it</span>
         </div>
       </div>
@@ -617,7 +617,7 @@
   var state = load();
 
   function defaultState(){
-    return { currentDate:"", entries:[], characters:{}, locations:{}, items:{}, encounters:{}, sessions:[], lists:[], dismissedDefaults:[] };
+    return { currentDate:"", entries:[], characters:{}, locations:{}, items:{}, threads:{}, sessions:[], lists:[], dismissedDefaults:[] };
   }
   function load(){
     try{
@@ -832,7 +832,7 @@
     var styleLists = state.lists.filter(function(l){ return l.role === "style" && l.lines && l.lines.length; });
     var style = styleLists.length ? pickRandom(pickRandom(styleLists).lines) : DEFAULT_STYLE;
     var notes = (ent.notes || "").trim().replace(/\s*\n+\s*/g, ", ").replace(/^-+\s*/g, "").replace(/,\s*-+\s*/g, ", ");
-    if(kind === "encounters"){
+    if(kind === "threads"){
       var desc = plainTextFromRaw(ent.raw);
       return "A dramatic fantasy battle/encounter scene: " + desc + (notes ? ". Details: " + notes : "") + ". Style: " + style + ".";
     }
@@ -840,7 +840,7 @@
     return "A " + subject + " of " + ent.name + (notes ? ": " + notes : "") + ". Style: " + style + ".";
   }
   // Strips sigils from a raw tagged line while keeping the names, and drops date tags entirely —
-  // used to turn an encounter's tagged prompt into a plain sentence for the AI art-prompt copy.
+  // used to turn an thread's tagged prompt into a plain sentence for the AI art-prompt copy.
   function plainTextFromRaw(raw){
     return parseSegments(raw).map(function(seg){
       if(seg.type === "text") return seg.value;
@@ -939,7 +939,7 @@
     tabs: document.querySelectorAll("nav.tabs button"),
     panels: {
       log: document.getElementById("panel-log"),
-      encounters: document.getElementById("panel-encounters"),
+      threads: document.getElementById("panel-threads"),
       characters: document.getElementById("panel-characters"),
       locations: document.getElementById("panel-locations"),
       items: document.getElementById("panel-items")
@@ -1028,13 +1028,13 @@
     });
   });
 
-  var activeFilter = null;   // {type:'character'|'location'|'item', id} — shared across Log and Encounters
+  var activeFilter = null;   // {type:'character'|'location'|'item', id} — shared across Log and Threads
   var editingId = null;
   var dropdownOpen = false;
   var highlightIndex = -1;
   var currentOptions = [];
 
-  // Independent state for the Encounters composer — deliberately separate from the Log
+  // Independent state for the Threads composer — deliberately separate from the Log
   // composer's state above rather than shared/parameterized, so the two composers can't
   // interfere with each other and the (already working) Log composer stays untouched.
   var encEditingId = null;
@@ -1051,7 +1051,7 @@
       });
       if(btn.dataset.tab === "log"){
         requestAnimationFrame(function(){ els.composer.focus(); });
-      } else if(btn.dataset.tab === "encounters"){
+      } else if(btn.dataset.tab === "threads"){
         requestAnimationFrame(function(){ els.encComposer.focus(); });
       }
     });
@@ -1060,9 +1060,9 @@
     els.tabs.forEach(function(b){ b.setAttribute("aria-selected", b.dataset.tab === "log" ? "true" : "false"); });
     Object.keys(els.panels).forEach(function(key){ els.panels[key].classList.toggle("active", key === "log"); });
   }
-  function switchToEncounters(){
-    els.tabs.forEach(function(b){ b.setAttribute("aria-selected", b.dataset.tab === "encounters" ? "true" : "false"); });
-    Object.keys(els.panels).forEach(function(key){ els.panels[key].classList.toggle("active", key === "encounters"); });
+  function switchToThreads(){
+    els.tabs.forEach(function(b){ b.setAttribute("aria-selected", b.dataset.tab === "threads" ? "true" : "false"); });
+    Object.keys(els.panels).forEach(function(key){ els.panels[key].classList.toggle("active", key === "threads"); });
   }
 
   /* ---------------- date pill ---------------- */
@@ -1332,14 +1332,14 @@
 
   /* ================================================================
      ENCOUNTERS — a second, independent composer using the same sigil
-     mechanic as the Log, but it creates/updates encounter cards instead
+     mechanic as the Log, but it creates/updates thread cards instead
      of appending to the chronological log. Deliberately duplicated
      rather than sharing code with the Log composer above, to keep the
      already-working Log tab completely unaffected by this addition.
      ================================================================ */
 
   // Builds a mentions array from a raw tagged line, creating/linking entities as needed.
-  // Shared by encounter creation, encounter editing, and the auto-logged "completed" entry.
+  // Shared by thread creation, thread editing, and the auto-logged "completed" entry.
   function buildMentionsExcludingDate(raw){
     var mentions = [];
     parseSegments(raw).forEach(function(seg){
@@ -1351,22 +1351,22 @@
     return mentions;
   }
 
-  function createEncounter(raw){
+  function createThread(raw){
     var now = Date.now();
     var enc = { id: uid(), raw: raw, mentions: buildMentionsExcludingDate(raw), status: "planned", notes: "", createdAt: now, updatedAt: now };
-    state.encounters[enc.id] = enc;
+    state.threads[enc.id] = enc;
     return enc;
   }
 
-  function getLastEncounter(){
-    var all = Object.keys(state.encounters).map(function(id){ return state.encounters[id]; });
+  function getLastThread(){
+    var all = Object.keys(state.threads).map(function(id){ return state.threads[id]; });
     if(!all.length) return null;
     all.sort(function(a,b){ return b.createdAt - a.createdAt; });
     return all[0];
   }
 
-  // Resolving an encounter drops a record into today's log. Deliberately uses the log's
-  // current sticky date (not any !date mentioned inside the encounter itself) — the encounter's
+  // Resolving an thread drops a record into today's log. Deliberately uses the log's
+  // current sticky date (not any !date mentioned inside the thread itself) — the thread's
   // date is when it was *planned* for, this entry is when it *actually* happened.
   function appendCompletionLogEntry(enc){
     var now = Date.now();
@@ -1377,7 +1377,7 @@
     });
   }
 
-  function setEncounterStatus(enc, status){
+  function setThreadStatus(enc, status){
     if(enc.status === status) return;
     var wasResolved = enc.status === "resolved";
     enc.status = status;
@@ -1387,7 +1387,7 @@
     renderAll();
   }
 
-  /* ---------------- encounter composer mirror ---------------- */
+  /* ---------------- thread composer mirror ---------------- */
   function encRenderMirror(){
     var segs = parseSegments(els.encComposer.value);
     var html = segs.map(function(seg){
@@ -1402,7 +1402,7 @@
     els.encMirrorInner.style.marginLeft = (-els.encComposer.scrollLeft) + "px";
   }
 
-  /* ---------------- encounter autocomplete ---------------- */
+  /* ---------------- thread autocomplete ---------------- */
   function encGetActiveTag(){
     var value = els.encComposer.value;
     var caret = els.encComposer.selectionStart;
@@ -1512,7 +1512,7 @@
     encRenderMirror();
   }
 
-  /* ---------------- encounter composer events ---------------- */
+  /* ---------------- thread composer events ---------------- */
   els.encComposer.addEventListener("input", function(){
     encRenderMirror();
     encUpdateDropdown();
@@ -1546,7 +1546,7 @@
       return;
     }
     if(e.key === "ArrowUp" && els.encComposer.value === "" && !encDropdownOpen){
-      var last = getLastEncounter();
+      var last = getLastThread();
       if(last){ encStartEditing(last); }
       e.preventDefault();
       return;
@@ -1579,13 +1579,13 @@
     var raw = els.encComposer.value.trim();
     if(!raw) return;
     if(encEditingId){
-      var enc = state.encounters[encEditingId];
+      var enc = state.threads[encEditingId];
       if(enc){
         enc.raw = raw; enc.mentions = buildMentionsExcludingDate(raw); enc.updatedAt = Date.now();
       }
       encStopEditing();
     } else {
-      createEncounter(raw);
+      createThread(raw);
     }
     els.encComposer.value = "";
     encRenderMirror();
@@ -1593,25 +1593,25 @@
     renderAll();
   }
 
-  /* ---------------- encounter rendering ---------------- */
-  function filteredEncounters(){
-    var all = Object.keys(state.encounters).map(function(id){ return state.encounters[id]; });
+  /* ---------------- thread rendering ---------------- */
+  function filteredThreads(){
+    var all = Object.keys(state.threads).map(function(id){ return state.threads[id]; });
     if(!activeFilter) return all;
     return all.filter(function(enc){
       return enc.mentions.some(function(m){ return m.type === activeFilter.type && m.id === activeFilter.id; });
     });
   }
 
-  function renderEncounterCard(enc){
+  function renderThreadCard(enc){
     var card = document.createElement("div");
-    card.className = "encounter-card";
+    card.className = "thread-card";
     var labelMap = { planned:"Planned", resolved:"Resolved", skipped:"Skipped" };
     var statusBtns = ["planned","resolved","skipped"].map(function(s){
       var cls = "status-btn " + s + (enc.status === s ? " active" : "");
       return '<button type="button" class="'+cls+'" data-status="'+s+'">'+labelMap[s]+'</button>';
     }).join("");
     card.innerHTML =
-      '<button class="encounter-delete" title="Delete encounter">🗑</button>' +
+      '<button class="thread-delete" title="Delete thread">🗑</button>' +
       '<div class="status-picker">'+statusBtns+'</div>' +
       '<div class="desc">'+renderEntrySegments(enc.raw, enc.mentions)+'</div>' +
       '<div class="meta">'+fmtSessionStart(enc.createdAt)+'</div>' +
@@ -1622,7 +1622,7 @@
       '</div>';
 
     card.querySelectorAll(".status-btn").forEach(function(btn){
-      btn.addEventListener("click", function(){ setEncounterStatus(enc, btn.dataset.status); });
+      btn.addEventListener("click", function(){ setThreadStatus(enc, btn.dataset.status); });
     });
 
     var notesArea = card.querySelector("textarea");
@@ -1632,28 +1632,28 @@
       saveTimer = setTimeout(function(){ enc.notes = notesArea.value; save(); }, 400);
     });
 
-    card.querySelector(".encounter-delete").addEventListener("click", function(){
-      if(!confirm("Delete this encounter? This can't be undone.")) return;
-      delete state.encounters[enc.id];
+    card.querySelector(".thread-delete").addEventListener("click", function(){
+      if(!confirm("Delete this thread? This can't be undone.")) return;
+      delete state.threads[enc.id];
       save(); renderAll();
     });
 
     return card;
   }
 
-  function renderEncounters(){
+  function renderThreads(){
     els.encList.innerHTML = "";
-    var totalCount = Object.keys(state.encounters).length;
+    var totalCount = Object.keys(state.threads).length;
     if(totalCount === 0){
       els.encList.innerHTML =
-        '<div class="empty"><div class="glyph">No encounters yet</div>' +
+        '<div class="empty"><div class="glyph">No threads yet</div>' +
         '<div>Plan one below the same way you log — tag people with <code>@</code>, places with <code>#</code>, items with <code>$</code>.</div>' +
         '<div class="example">The party ambushes @"Bandit Chief Rurik" near #"Old Mill Bridge", guarding a $"stolen wagon".</div></div>';
       return;
     }
-    var visible = filteredEncounters();
+    var visible = filteredThreads();
     if(visible.length === 0){
-      els.encList.innerHTML = '<div class="empty"><div class="glyph">Nothing here yet</div><div>No encounters mention this one yet.</div></div>';
+      els.encList.innerHTML = '<div class="empty"><div class="glyph">Nothing here yet</div><div>No threads mention this one yet.</div></div>';
       return;
     }
     [
@@ -1670,7 +1670,7 @@
       head.className = "enc-section-head";
       head.textContent = group.label + " (" + items.length + ")";
       els.encList.appendChild(head);
-      items.forEach(function(enc){ els.encList.appendChild(renderEncounterCard(enc)); });
+      items.forEach(function(enc){ els.encList.appendChild(renderThreadCard(enc)); });
     });
   }
 
@@ -1680,7 +1680,7 @@
     activeFilter = { type: tag.dataset.type, id: tag.dataset.id };
     renderFilterPill();
     renderLog();
-    renderEncounters();
+    renderThreads();
   });
 
   /* ---------------- log rendering ---------------- */
@@ -1771,7 +1771,7 @@
       activeFilter = { type: tag.dataset.type, id: tag.dataset.id };
       renderFilterPill();
       renderLog();
-      renderEncounters();
+      renderThreads();
       return;
     }
     var strikeBtn = e.target.closest(".entry-strike");
@@ -1804,14 +1804,14 @@
     var label = "Showing entries with " + sigilForType(activeFilter.type) + (ent ? ent.name : "?");
     els.filterLabel.textContent = label;
     els.filterPill.classList.add("show");
-    els.encFilterLabel.textContent = label.replace("entries", "encounters");
+    els.encFilterLabel.textContent = label.replace("entries", "threads");
     els.encFilterPill.classList.add("show");
   }
   els.filterClear.addEventListener("click", function(){
-    activeFilter = null; renderFilterPill(); renderLog(); renderEncounters();
+    activeFilter = null; renderFilterPill(); renderLog(); renderThreads();
   });
   els.encFilterClear.addEventListener("click", function(){
-    activeFilter = null; renderFilterPill(); renderLog(); renderEncounters();
+    activeFilter = null; renderFilterPill(); renderLog(); renderThreads();
   });
 
   /* ---------------- characters / locations / items ---------------- */
@@ -1833,8 +1833,8 @@
       var count = state.entries.filter(function(e){
         return e.mentions.some(function(m){ return m.id === ent.id; });
       }).length;
-      var encCount = Object.keys(state.encounters).filter(function(id){
-        return state.encounters[id].mentions.some(function(m){ return m.id === ent.id; });
+      var encCount = Object.keys(state.threads).filter(function(id){
+        return state.threads[id].mentions.some(function(m){ return m.id === ent.id; });
       }).length;
 
       var card = document.createElement("div");
@@ -1854,7 +1854,7 @@
         '<div class="card-foot">' +
           '<span>' +
             '<button class="mentions-btn">Mentioned in '+count+' '+(count===1?'entry':'entries')+'</button>' +
-            (encCount > 0 ? '<button class="mentions-btn enc-mentions-btn">In '+encCount+' '+(encCount===1?'encounter':'encounters')+'</button>' : '') +
+            (encCount > 0 ? '<button class="mentions-btn enc-mentions-btn">In '+encCount+' '+(encCount===1?'thread':'threads')+'</button>' : '') +
           '</span>' +
           (withFairy ? '<div class="fairy-wrap" data-ent-id="'+ent.id+'"><button class="fairy-btn" type="button">🧚 Fairy</button><div class="fairy-menu"></div></div>' : '') +
         '</div>';
@@ -1908,7 +1908,7 @@
         activeFilter = { type: type, id: ent.id };
         renderFilterPill();
         renderLog();
-        renderEncounters();
+        renderThreads();
         switchToLog();
       });
 
@@ -1918,8 +1918,8 @@
           activeFilter = { type: type, id: ent.id };
           renderFilterPill();
           renderLog();
-          renderEncounters();
-          switchToEncounters();
+          renderThreads();
+          switchToThreads();
         });
       }
 
@@ -1992,7 +1992,7 @@
           var line = pickRandom(list.lines);
           ent2.notes = (ent2.notes ? ent2.notes.trim() + "\n" : "") + "- " + line;
           save();
-          var cardEl2 = wrap2.closest(".card, .encounter-card");
+          var cardEl2 = wrap2.closest(".card, .thread-card");
           var textarea = cardEl2 && cardEl2.querySelector("textarea");
           if(textarea) textarea.value = ent2.notes;
         }
@@ -2016,7 +2016,7 @@
   }
   setupFairyDelegation(els.gridChars, "characters");
   setupFairyDelegation(els.gridLocs, "locations");
-  setupFairyDelegation(els.encList, "encounters");
+  setupFairyDelegation(els.encList, "threads");
   document.addEventListener("click", closeAllFairyMenus);
   document.addEventListener("scroll", closeAllFairyMenus, true);
   window.addEventListener("resize", closeAllFairyMenus);
@@ -2026,15 +2026,15 @@
     var chars = Object.keys(state.characters).length;
     var locs = Object.keys(state.locations).length;
     var items = Object.keys(state.items).length;
-    var enc = Object.keys(state.encounters).length;
+    var enc = Object.keys(state.threads).length;
     els.stats.textContent = state.entries.length + " entries · " + chars + " characters · " + locs + " locations · " + items + " items";
     els.countChars.textContent = chars;
     els.countLocs.textContent = locs;
     els.countItems.textContent = items;
     els.countEnc.textContent = enc;
     var planned = 0, resolved = 0, skipped = 0;
-    Object.keys(state.encounters).forEach(function(id){
-      var s = state.encounters[id].status;
+    Object.keys(state.threads).forEach(function(id){
+      var s = state.threads[id].status;
       if(s === "planned") planned++; else if(s === "resolved") resolved++; else if(s === "skipped") skipped++;
     });
     els.encStats.textContent = enc === 0 ? "" : (planned + " planned · " + resolved + " resolved · " + skipped + " skipped");
@@ -2044,7 +2044,7 @@
     renderDatePill();
     renderFilterPill();
     renderLog();
-    renderEncounters();
+    renderThreads();
     renderEntities("characters", els.gridChars, "character", "@", true);
     renderEntities("locations", els.gridLocs, "location", "#", true);
     renderEntities("items", els.gridItems, "item", "$", false);
@@ -2221,7 +2221,7 @@
   });
 
   els.btnClear.addEventListener("click", function(){
-    if(!confirm("This clears everything in this browser — characters, locations, items, encounters, photos, lists, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
+    if(!confirm("This clears everything in this browser — characters, locations, items, threads, photos, lists, and every log entry. Export a backup first if you want to keep it. Continue?")) return;
     closePhotoModal();
     state = defaultState();
     activeFilter = null;
